@@ -1,6 +1,6 @@
 (ns org.clojars.smee.binary.core
   (:use [clojure.java.io :only (input-stream output-stream)])
-  (:import [java.io DataInput DataOutput DataInputStream DataOutputStream InputStream])
+  (:import [java.io DataInput DataOutput DataInputStream DataOutputStream InputStream ByteArrayInputStream ByteArrayOutputStream])
   (:require [clojure.walk :as walk]))
 
 (defprotocol ^:private BinaryIO
@@ -83,6 +83,7 @@
 `:prefix` codec for the length of the sequence to read prior to the sequence itself.
 Example: To read a sequence of integers with a byte prefix for the length use `(repeated :byte :prefix :int)`"
   [codec & options]
+  {:pre [(some #{:length :prefix} options)]}
   (let [codec (compile-codec codec)
         options (apply hash-map options)
         length (get options :length)]
@@ -127,6 +128,38 @@ Flag names `null` are ignored. "
     (compile-codec :byte 
                    (fn [flags] (reduce #(set-bit % %2) (byte 0) (vals (select-keys flags->idx flags))))
                    (fn [byte] (set (map idx->flags (filter #(bit-set? byte %) bit-indices)))))))
+
+#_(defn header 
+  "Decodes a header using `codec`. Passes this datastructure to `header->body` which returns the codec to
+use to parse the body. For writing this codec calls `body->header` with the data as parameter and
+expects a codec to use for writing the header information."
+  [codec header->body body->header])
+
+(defn padding 
+  "Make sure there is always a minimum byte `length` when writing a value.
+Per default the padding are 0-bytes. Optionally a third parameter may specify the
+byte value to use for padding"
+  [inner-codec length & [byte-value]]
+  {:pre [(number? length) (or (nil? byte-value) (number? byte-value))]}
+  (let [inner-codec (compile-codec inner-codec)
+        padding-value (or byte-value (byte 0))]
+    (reify BinaryIO 
+      (read-data  [_ big-in _]
+        (let [bytes (byte-array length)
+              _ (.readFully big-in bytes)
+              in (java.io.ByteArrayInputStream. bytes)
+              big-in (DataInputStream. in)
+              little-in (LittleEndianDataInputStream. in)]
+          (read-data inner-codec big-in little-in)))
+      (write-data [_ big-out _ value]
+        (let [baos (ByteArrayOutputStream. length)
+              big-o (DataOutputStream. baos)
+              little-o (LittleEndianDataOutputStream. baos)
+              _ (write-data inner-codec big-o little-o value)
+              arr (.toByteArray baos)
+              len (alength arr)]
+          (.write big-out arr 0 len)
+          (dotimes [_ (max 0 (- length len))] (.writeByte big-out padding-value)))))))
 ;;;;;;; internal compilation of the DSL into instances of `BinaryIO`
 
 (defn- sequence-codec [v]
@@ -170,4 +203,3 @@ Flag names `null` are ignored. "
   (let [big-in (DataInputStream. in)
         little-in (LittleEndianDataInputStream. in)]
     (read-data codec big-in little-in)))
-
