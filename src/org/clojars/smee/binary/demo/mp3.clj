@@ -2,7 +2,7 @@
       :author "Steffen Dienst"} 
   siemens-pv-data.mp3
   (:use clojure.test
-        siemens-pv-data.binary.core))
+        org.clojars.smee.binary.core))
 
 
 (defn int->synchsafe [x]
@@ -55,6 +55,7 @@
   (compile-codec [header]))
 
 (comment 
+  (use '[clojure.java.io :only [input-stream]])
   (let [in (input-stream "d:\\test.mp3")]
     (println (decode mp3-id3v2-codec in))
     (println (decode idv2-frame in)))
