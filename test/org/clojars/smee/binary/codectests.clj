@@ -79,7 +79,9 @@
 (deftest wrong-length
   (are [codec values] (is (thrown? java.lang.RuntimeException (encode codec (NullOutputStream.) values)))
        (string "UTF-8" :length 5) "X"
-       (repeated :int :length 3) [1 2]))
+       (repeated :int :length 3) [1 2]
+       (padding :int-le 1) (int 1234)
+       (padding :int-le 3) (int 1234)))
 
 (deftest paddings
   (test-all-roundtrips

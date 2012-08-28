@@ -157,9 +157,13 @@ byte value to use for padding"
               little-o (LittleEndianDataOutputStream. baos)
               _ (write-data inner-codec big-o little-o value)
               arr (.toByteArray baos)
-              len (alength arr)]
-          (.write big-out arr 0 len)
-          (dotimes [_ (max 0 (- length len))] (.writeByte big-out padding-value)))))))
+              len (alength arr)
+              padding-bytes-left (max 0 (- length len))]
+          (if (> 0 (- length len)) 
+            (throw (IllegalArgumentException. (str "Data should be max. " length " bytes, but attempting to write " (Math/abs padding-bytes-left) " bytes more!")))
+            (do
+              (.write big-out arr 0 len)
+              (dotimes [_ padding-bytes-left] (.writeByte big-out padding-value)))))))))
 ;;;;;;; internal compilation of the DSL into instances of `BinaryIO`
 
 (defn- sequence-codec [v]
