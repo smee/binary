@@ -146,7 +146,7 @@ byte value to use for padding"
     (reify BinaryIO 
       (read-data  [_ big-in _]
         (let [bytes (byte-array length)
-              _ (.readFully big-in bytes)
+              _ (.readFully ^DataInput big-in bytes)
               in (java.io.ByteArrayInputStream. bytes)
               big-in (DataInputStream. in)
               little-in (LittleEndianDataInputStream. in)]
@@ -162,8 +162,8 @@ byte value to use for padding"
           (if (> 0 (- length len)) 
             (throw (IllegalArgumentException. (str "Data should be max. " length " bytes, but attempting to write " (Math/abs padding-bytes-left) " bytes more!")))
             (do
-              (.write big-out arr 0 len)
-              (dotimes [_ padding-bytes-left] (.writeByte big-out padding-value)))))))))
+              (.write ^DataOutputStream big-out arr 0 len)
+              (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-value)))))))))
 ;;;;;;; internal compilation of the DSL into instances of `BinaryIO`
 
 (defn- sequence-codec [v]
