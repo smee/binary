@@ -53,7 +53,9 @@
   (test-all-roundtrips
     [[(repeated :byte :prefix :byte) (vec (range 5)) [5 0 1 2 3 4]]
      [(repeated :byte :length 5) (vec (range 5)) [0 1 2 3 4]]
-     [(repeated (string "UTF8" :prefix :byte) :prefix :int-be) ["AAA" "BB" "C"] [0 0 0 3 3 65 65 65 2 66 66 1 67]]]))
+     [(repeated (string "UTF8" :prefix :byte) :prefix :int-be) ["AAA" "BB" "C"] [0 0 0 3 3 65 65 65 2 66 66 1 67]]
+     [(repeated :byte) (vec (range 5)) [0 1 2 3 4]]
+     [(repeated :short-le) (vec (range 5)) [0 0 1 0 2 0 3 0 4 0]]]))
 
 (deftest sequence-encodings
   (test-all-roundtrips

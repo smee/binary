@@ -57,7 +57,9 @@
 
 (declare compile-codec)
 
-(defn ordered-map [& kvs]
+(defn ordered-map 
+  "Parse a binary stream into a map."
+  [& kvs]
   {:pre [(even? (count kvs))]} 
   (let [ks (take-nth 2 kvs)
         vs (map compile-codec (take-nth 2 (rest kvs)))]
@@ -77,34 +79,49 @@
       (persistent! res#) 
       (recur (dec n#) (conj! res# (read-data ~codec ~big-in ~little-in))))))
 
+(defmacro ^:private read-exhausting 
+  "Performance optimization for `(take-while (complement nil? )(repeatedly n #(read-data codec big-in little-in)))`"
+  [codec big-in little-in]
+  `(loop [res# (transient [])] 
+    (if-let [value# (try (read-data ~codec ~big-in ~little-in) (catch java.io.EOFException e# nil))]
+      (recur (conj! res# value#))
+      (persistent! res#))))
+
 (defn repeated 
   "Read a sequence of values. Options are pairs of keys and values with possible keys:
 `:length` fixed length of the sequence
 `:prefix` codec for the length of the sequence to read prior to the sequence itself.
+If there is no options, the decoder tries to read continuously until the stream is exhausted.
 Example: To read a sequence of integers with a byte prefix for the length use `(repeated :byte :prefix :int)`"
   [codec & options]
-  {:pre [(some #{:length :prefix} options)]}
   (let [codec (compile-codec codec)
         options (apply hash-map options)
-        length (get options :length)]
-    (if length 
-      (reify BinaryIO 
-        (read-data  [_ big-in little-in]
-           (read-times length codec big-in little-in))
-        (write-data [_ big-out little-out values]
-           (if (not= length (count values)) 
-             (throw (java.lang.IllegalArgumentException. (str "This sequence should have length " length " but has really length " (count values))))
-             (dorun (map #(write-data codec big-out little-out %) values)))))
-      ; else use prefix-codec
-      (let [prefix-codec (compile-codec (options :prefix))] 
-        (reify BinaryIO 
-          (read-data  [_ big-in little-in]
-                      (let [length (read-data prefix-codec big-in little-in)]
-                        (read-times length codec big-in little-in)))
-          (write-data [_ big-out little-out values]
-                      (let [length (count values)] 
-                        (write-data prefix-codec big-out little-out length)
-                        (dorun (map #(write-data codec big-out little-out %) values)))))))))
+        length (options :length)
+        prefix (options :prefix)]
+    (cond length (reify BinaryIO 
+                   (read-data  [_ big-in little-in]
+                     (read-times length codec big-in little-in))
+                   (write-data [_ big-out little-out values]
+                     (if (not= length (count values)) 
+                       (throw (java.lang.IllegalArgumentException. (str "This sequence should have length " length " but has really length " (count values))))
+                       (doseq [value values] 
+                         (write-data codec big-out little-out value)))))
+          ; use prefix-codec?
+          prefix (let [prefix-codec (compile-codec prefix)] 
+                              (reify BinaryIO 
+                                (read-data  [_ big-in little-in]
+                                  (let [length (read-data prefix-codec big-in little-in)]
+                                    (read-times length codec big-in little-in)))
+                                (write-data [_ big-out little-out values]
+                                  (let [length (count values)] 
+                                    (write-data prefix-codec big-out little-out length)
+                                    (dorun (map #(write-data codec big-out little-out %) values))))))
+          :else (reify BinaryIO
+                  (read-data  [_ big-in little-in]
+                    (read-exhausting codec big-in little-in))
+                  (write-data [_ big-out little-out values]
+                    (doseq [value values]
+                      (write-data codec big-out little-out value)))))))
 
 (defn string [^String encoding & options]
   {:pre [(some #{:length :prefix} (take-nth 2 options))]}
