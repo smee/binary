@@ -1,15 +1,17 @@
 # binary-dsl
 
-I'm an app. Or maybe I'm a library? I haven't decided yet. 
+This library is a high performance binary parser combinator. It enables reading and writing arbitrary binary data from Java's io streams.  
 
-The choice is up to you!
+[![Build Status](https://secure.travis-ci.org/smee/binary.png)](http://travis-ci.org/smee/binary])
+
 
 ## Usage
 
-FIXME
+Please refer to the tests for now at (https://github.com/smee/binary/blob/master/test/org/clojars/smee/binary/codectests.clj) or the start of an MP3 IDv2 parser at (https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/mp3.clj).
+More documentation is currently in the pipeline...
 
 ## License
 
-Copyright © 2012 FIXME
+Copyright © 2012 Steffen Dienst
 
 Distributed under the Eclipse Public License, the same as Clojure.
