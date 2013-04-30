@@ -89,3 +89,20 @@
   (test-all-roundtrips
     [[(padding :int-be 6 (int \x)) (int 55) [0 0 0 55 120 120]]
      [(padding (string "UTF8" :length 6) 6) "abcdef" [97 98 99 100 101 102]]]))
+
+(deftest constants
+  (test-all-roundtrips
+    [[(constant :int-le 7) 7 [7 0 0 0]]
+     [(constant (string "UTF8" :length 2) "AB") "AB" [65 66]]]))
+
+(deftest constants-ignore-value
+  (let [constant-value "AB"
+        codec (constant (string "UTF8" :length 2) constant-value)
+        baos (java.io.ByteArrayOutputStream.)
+        _ (encode codec baos "foo")
+        arr (.toByteArray baos)
+        encoded-bytes (map byte->ubyte (seq arr))
+        decoded (decode codec (java.io.ByteArrayInputStream. arr))]    
+    (is (= (class decoded) (class constant-value)))
+    (is (= decoded constant-value))
+    (is (= encoded-bytes [65 66]))))

@@ -123,6 +123,19 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
                     (doseq [value values]
                       (write-data codec big-out little-out value)))))))
 
+(defn constant 
+  "Reads a constant value, ignores given value on write. Can be used as a version tag for a composite codec.
+Example:
+    (encode out (constant :int-le 7) 1234)
+    => ;will instead write bytes [7 0 0 0]"
+  [codec constant-value]
+  (let [codec (compile-codec codec)]
+    (reify BinaryIO 
+      (read-data  [_ big-in little-in]
+        constant-value)
+      (write-data [_ big-out little-out _]
+        (write-data codec big-out little-out constant-value)))))
+
 (defn string [^String encoding & options]
   {:pre [(some #{:length :prefix} (take-nth 2 options))]}
   (compile-codec 
