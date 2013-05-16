@@ -101,11 +101,11 @@ public class LittleEndianDataInputStream extends FilterInputStream implements Da
 	 }
 
 	 public final boolean readBoolean() throws IOException {
-		 return this.readBoolean();
+		 return d.readBoolean();
 	 }
 
 	 public final byte readByte() throws IOException {
-		 return this.readByte();
+		 return d.readByte();
 	 }
 
 	 public int read() throws IOException {
@@ -113,16 +113,16 @@ public class LittleEndianDataInputStream extends FilterInputStream implements Da
 	 }
 
 	 public final int readUnsignedByte() throws IOException {
-		 return this.readUnsignedByte();
+		 return d.readUnsignedByte();
 	 }
 
 	 @Deprecated
 	 public final String readLine() throws IOException {
-		 return this.readLine();
+		 return d.readLine();
 	 }
 
 	 public final String readUTF() throws IOException {
-		 return this.readUTF();
+		 return d.readUTF();
 	 }
 
 	 public final void close() throws IOException {
