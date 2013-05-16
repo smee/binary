@@ -1,6 +1,7 @@
 (ns org.clojars.smee.binary.codectests
   (:use clojure.test
-        org.clojars.smee.binary.core))
+        org.clojars.smee.binary.core)
+  (:require [org.clojars.smee.binary.demo.protobuf :as pb]))
 
 (defn- test-roundtrip [codec value expected-bytes] 
   (let [baos (java.io.ByteArrayOutputStream.)
@@ -95,14 +96,18 @@
     [[(constant :int-le 7) 7 [7 0 0 0]]
      [(constant (string "UTF8" :length 2) "AB") "AB" [65 66]]]))
 
-(deftest constants-ignore-value
-  (let [constant-value "AB"
-        codec (constant (string "UTF8" :length 2) constant-value)
-        baos (java.io.ByteArrayOutputStream.)
-        _ (encode codec baos "foo")
-        arr (.toByteArray baos)
-        encoded-bytes (map byte->ubyte (seq arr))
-        decoded (decode codec (java.io.ByteArrayInputStream. arr))]    
-    (is (= (class decoded) (class constant-value)))
-    (is (= decoded constant-value))
-    (is (= encoded-bytes [65 66]))))
+(deftest constants-exception-on-wrong-value
+  (let [codec (constant (string "UTF8" :length 2) "AB")] 
+    (test-roundtrip codec "AB" [65 66])
+    (is (thrown? java.lang.AssertionError
+                 (decode codec (java.io.ByteArrayInputStream. (byte-array [(byte 0) (byte 0)])))))))
+
+(deftest headers
+  (test-all-roundtrips
+    [[(header :byte #(string "utf8" :length %) #(.length %)) "ABC" [3 65 66 67]]
+     ]))
+
+#_(deftest protobuf
+  (test-all-roundtrips
+    [[pb/proto-key [150 0] [8]]
+     [pb/proto-delimited "testing" [0x12 0x07 0x74 0x65 0x73 0x74 0x69 0x6e 0x67]]]))

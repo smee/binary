@@ -129,12 +129,9 @@ Example:
     (encode out (constant :int-le 7) 1234)
     => ;will instead write bytes [7 0 0 0]"
   [codec constant-value]
-  (let [codec (compile-codec codec)]
-    (reify BinaryIO 
-      (read-data  [_ big-in little-in]
-        constant-value)
-      (write-data [_ big-out little-out _]
-        (write-data codec big-out little-out constant-value)))))
+  (compile-codec codec 
+                 (constantly constant-value) 
+                 #(do (assert (= % constant-value)) constant-value)))
 
 (defn string [^String encoding & options]
   {:pre [(some #{:length :prefix} (take-nth 2 options))]}
@@ -150,8 +147,8 @@ Example:
 
 (defn bits 
   "`flags` is a sequence of flag names. Each flag's index corresponds to the bit with that index.
-Flag names `null` are ignored. "
-  [flags]
+Flag names `null` are ignored. There may be a maximum of 8 flags that get stored in one byte."
+  [flags] {:pre [(<= (count flags) 8)]}
   (let [idx->flags (into {} (keep-indexed #(when %2 [%1 %2]) flags))
         flags->idx (into {} (keep-indexed #(when %2 [%2 %1]) flags))
         bit-indices (sort (keys idx->flags))]
@@ -159,11 +156,23 @@ Flag names `null` are ignored. "
                    (fn [flags] (reduce #(set-bit % %2) (byte 0) (vals (select-keys flags->idx flags))))
                    (fn [byte] (set (map idx->flags (filter #(bit-set? byte %) bit-indices)))))))
 
-#_(defn header 
-  "Decodes a header using `codec`. Passes this datastructure to `header->body` which returns the codec to
+(defn header 
+  "Decodes a header using `header-codec`. Passes this datastructure to `header->body` which returns the codec to
 use to parse the body. For writing this codec calls `body->header` with the data as parameter and
 expects a codec to use for writing the header information."
-  [codec header->body body->header])
+  [header-codec header->body-codec body->header]
+  (let [header-codec (compile-codec header-codec)]
+    (reify BinaryIO 
+      (read-data  [_ big-in little-in]
+        (let [header (read-data header-codec big-in little-in)
+              body-codec (header->body-codec header)
+              body (read-data body-codec big-in little-in)]
+          body))
+      (write-data [_ big-out little-out value]
+        (let [header (body->header value)
+              body-codec (header->body-codec header)] 
+          (write-data header-codec big-out little-out header)
+          (write-data body-codec big-out little-out value))))))
 
 (defn padding 
   "Make sure there is always a minimum byte `length` when writing a value.
