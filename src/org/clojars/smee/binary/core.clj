@@ -66,7 +66,8 @@
     (reify BinaryIO
       (read-data  [_ big-in little-in]
          (zipmap ks (map #(read-data % big-in little-in) vs)))
-      (write-data [_ big-out little-out value]
+      (write-data [_ big-out little-out value] 
+        {:pre [(every? (set ks) (keys value))]}
          (dorun (map #(write-data % big-out little-out %2) 
                      vs
                      (map #(get value %) ks)))))))
