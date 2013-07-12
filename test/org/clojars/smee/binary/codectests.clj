@@ -8,9 +8,10 @@
         _ (encode codec baos value)
         arr (.toByteArray baos)
         encoded-bytes (map byte->ubyte (seq arr))
-        decoded (decode codec (java.io.ByteArrayInputStream. arr))]    
+        decoded (decode codec (java.io.ByteArrayInputStream. arr))]
+;    (println codec value expected-bytes decoded (java.lang.Long/toBinaryString decoded)) (doseq [b encoded-bytes] (print (java.lang.Integer/toHexString b) " ")) (println)    
     (is (= (class decoded) (class value)))
-    (is (= decoded value))
+    (is (= decoded value))  
     (when expected-bytes
       (is (= encoded-bytes expected-bytes)))))
 
@@ -24,6 +25,8 @@
      [:short-le (short 5) [5 0]]
      [:int-be (int 127) [0 0 0 127]]
      [:int-le (int 127) [127 0 0 0]]
+     [:uint-le (long 255) [255 0 0 0]]
+     [:uint-be (long 255) [0 0 0 255]]
      [:long-be (long 31) [0 0 0 0 0 0 0 31]]
      [:long-le (long 31) [31 0 0 0 0 0 0 0]]
      [:float-le (float 123.45) [0x66 0xe6 0xf6 0x42]]
@@ -49,6 +52,10 @@
      [{:foo :int-be
        :bar :short-le
        :baz :ubyte} {:foo 1 :bar 0, :baz 255}]]))
+
+#_(deftest map-manipulations
+  (is (= 0 (count (ordered-map))))
+  (is (= [:foo :bar] (keys (ordered-map :foo :byte :bar :int)))))
 
 (deftest repeated-encodings
   (test-all-roundtrips

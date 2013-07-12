@@ -5,7 +5,7 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class LittleEndianDataInputStream extends FilterInputStream implements DataInput {
+public class LittleEndianDataInputStream extends FilterInputStream implements UnsignedDataInput {
 
 	private DataInputStream d;
 
@@ -37,6 +37,15 @@ public class LittleEndianDataInputStream extends FilterInputStream implements Da
 				 (w[0]&0xff));
 	 }
 
+	 public final long readUnsignedInt() throws IOException
+	 {
+		 this.readFully(w, 0, 4);
+		 return
+				 (w[3])      << 24 |
+				 (w[2]&0xff) << 16 |
+				 (w[1]&0xff) <<  8 |
+				 (w[0]&0xff);
+	 }
 	 
 	 public final char readChar() throws IOException
 	 {

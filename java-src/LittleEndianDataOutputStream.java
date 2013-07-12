@@ -1,6 +1,6 @@
 import java.io.*;
 
-public class LittleEndianDataOutputStream extends FilterOutputStream implements DataOutput{
+public class LittleEndianDataOutputStream extends FilterOutputStream implements UnsignedDataOutput{
 
 	public LittleEndianDataOutputStream(OutputStream out) {
 		super(out);
@@ -34,7 +34,13 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 		out.write((i >>> 24) & 0xFF);
 
 	}
+	public void writeUnsignedInt(long i) throws IOException {
+		out.write((int) (i & 0xFF));
+		out.write((int) ((i >>> 8) & 0xFF));
+		out.write((int) ((i >>> 16) & 0xFF));
+		out.write((int) ((i >>> 24) & 0xFF));
 
+	}
 	public void writeLong(long l) throws IOException {
 		out.write((int) l & 0xFF);
 		out.write((int) (l >>> 8) & 0xFF);

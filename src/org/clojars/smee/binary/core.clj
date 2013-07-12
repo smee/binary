@@ -7,6 +7,9 @@
   (read-data  [codec big-in little-in])
   (write-data [codec big-out little-out value]))
 
+(defn codec? [codec]
+  (satisfies? BinaryIO codec))
+
 (defmacro ^:private primitive-codec 
   "Create an reification of `BinaryIO` that can read/write a primmitive data type."
   [get-fn write-fn cast-fn & [endianess]]
@@ -18,9 +21,9 @@
         out (if (= endianess :le) little-out big-out)]
     `(reify BinaryIO
        (read-data [codec# ~big-in ~little-in]
-          (~cast-fn (~get-fn ~(with-meta in {:tag "DataInput"}))))
+          (~cast-fn (~get-fn ~(with-meta in {:tag "UnsignedDataInput"}))))
        (write-data [codec# ~big-out ~little-out value#]
-          (~write-fn ~(with-meta out {:tag "DataOutput"}) value#))
+          (~write-fn ~(with-meta out {:tag "UnsignedDataOutput"}) value#))
        Object (toString [_] (str "<BinaryIO " '~get-fn ">")))))
 
 (defn byte->ubyte [b]
@@ -41,6 +44,8 @@
    :int    (primitive-codec .readInt .writeInt int :be)
    :int-le (primitive-codec .readInt .writeInt int :le)
    :int-be (primitive-codec .readInt .writeInt int :be)
+   :uint-le (primitive-codec .readUnsignedInt .writeUnsignedInt long :le)
+   :uint-be (primitive-codec .readUnsignedInt .writeUnsignedInt long :be)
 
    :long    (primitive-codec .readLong .writeLong long :be)
    :long-le (primitive-codec .readLong .writeLong long :le)
@@ -62,15 +67,58 @@
   [& kvs]
   {:pre [(even? (count kvs))]} 
   (let [ks (take-nth 2 kvs)
-        vs (map compile-codec (take-nth 2 (rest kvs)))]
-    (reify BinaryIO
+        vs (map compile-codec (take-nth 2 (rest kvs)))
+        key-order (into {} (map-indexed #(vector %2 %) ks))
+        internal-map (apply sorted-map-by (comparator #(< (key-order % java.lang.Long/MAX_VALUE) (key-order %2 java.lang.Long/MAX_VALUE))) kvs)]
+    (reify 
+      BinaryIO
       (read-data  [_ big-in little-in]
-         (zipmap ks (map #(read-data % big-in little-in) vs)))
+        (zipmap ks (map #(read-data % big-in little-in) vs)))
       (write-data [_ big-out little-out value] 
         {:pre [(every? (set ks) (keys value))]}
-         (dorun (map #(write-data % big-out little-out %2) 
-                     vs
-                     (map #(get value %) ks)))))))
+        (dorun (map #(write-data % big-out little-out %2) 
+                    vs
+                    (map #(get value %) ks))))
+      
+;      java.lang.Object
+;       (toString [this] 
+;         (str internal-map))
+;      
+;      clojure.lang.ILookup
+;      (valAt [_ key]
+;        (get internal-map key))
+;      (valAt [_ key not-found]
+;        (get internal-map key not-found))
+;      
+;      clojure.lang.Counted
+;      (count [_]
+;         (count internal-map))
+;      
+;       clojure.lang.Associative
+;       (containsKey [_ k] 
+;         (contains? internal-map k))
+;       (entryAt [_ k]
+;         (get internal-map k))
+;       (assoc [this k v]  
+;         (apply ordered-map (apply concat (seq (assoc internal-map k v)))))
+;       
+;       clojure.lang.IPersistentCollection
+;       (cons [this [k v]]  
+;         (assoc this k v))
+;       (empty [_]
+;         (ordered-map))
+;       (equiv [_ other]
+;         false)
+;
+;       clojure.lang.Seqable
+;       (seq [_] 
+;         (seq internal-map))
+;
+;       ;; Java interfaces
+;       java.lang.Iterable
+;       (iterator [this] 
+;         (.iterator (seq this)))
+       )))
 
 (defmacro ^:private read-times 
   "Performance optimization for `(repeatedly n #(read-data codec big-in little-in))`"
@@ -138,7 +186,7 @@ Example:
   {:pre [(some #{:length :prefix} (take-nth 2 options))]}
   (compile-codec 
     (apply repeated :byte options)
-    (fn [^String s] (.getBytes s encoding))
+    (fn string2bytes [^String s] (.getBytes s encoding))
     #(String. (byte-array %) encoding)))
 
 (defn- bit-set? [number idx]
@@ -210,7 +258,7 @@ byte value to use for padding"
   {:pre [(vector? v) (not-empty v)]}
   (reify BinaryIO 
     (read-data  [codec big-in little-in]
-        (vec (map #(read-data % big-in little-in) v)))
+        (mapv #(read-data % big-in little-in) v))
     (write-data [codec big-out little-out values]
         (dorun (map #(write-data % big-out little-out %2) v values)))))
 
@@ -218,12 +266,12 @@ byte value to use for padding"
   (->> codec
     (walk/postwalk-replace primitive-codecs)
     (walk/prewalk #(cond 
-                      (vector? %) (sequence-codec %)
+                      (vector? %) (sequence-codec %) ; FIXME when transforming a map we get vectors per map entry, breaks this compiler :(
                       (map? %) (apply ordered-map (interleave (keys %) (vals %)))
                       :else %))))
 
 (defn compile-codec 
-  ([codec] (if (satisfies? BinaryIO codec) codec (compile-tree codec)))
+  ([codec] (if (codec? codec) codec (compile-tree codec)))
   ([codec pre-encode post-decode]
     (let [codec (compile-tree codec)]
       (reify BinaryIO
@@ -237,13 +285,13 @@ byte value to use for padding"
 (defn encode 
   "Serialize a value to the outputstream out according to the codec."
   [codec out value]
-  (let [big-out (DataOutputStream. out)
+  (let [big-out (BigEndianDataOutputStream. out)
         little-out (LittleEndianDataOutputStream. out)]
     (write-data codec big-out little-out value)))
 
 (defn decode 
   "Serialize a value to the outputstream out according to the codec."
   [codec in]
-  (let [big-in (DataInputStream. in)
+  (let [big-in (BigEndianDataInputStream. in)
         little-in (LittleEndianDataInputStream. in)]
     (read-data codec big-in little-in)))
