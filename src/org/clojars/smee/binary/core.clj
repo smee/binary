@@ -225,12 +225,6 @@ expects a codec to use for writing the header information."
           (write-data header-codec big-out little-out header)
           (write-data body-codec big-out little-out value))))))
 
-(def nop 
-;  "Does nothing on write, returns nil on read."
-    (reify BinaryIO 
-      (read-data [_ _ _] nil)
-      (write-data [_ _ _ _])))
-
 (defn padding 
   "Make sure there is always a minimum byte `length` when writing a value.
 Per default the padding are 0-bytes. Optionally a third parameter may specify the
