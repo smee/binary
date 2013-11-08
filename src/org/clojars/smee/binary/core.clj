@@ -180,7 +180,9 @@ Example:
   [codec constant-value]
   (compile-codec codec 
                  (constantly constant-value) 
-                 #(do (assert (= % constant-value)) constant-value)))
+                 #(do 
+                    (assert (= % constant-value) (format "value '%s' should have had the constant value '%s'" (str %) (str constant-value))) 
+                    constant-value)))
 
 (defn string [^String encoding & options]
   {:pre [(some #{:length :prefix} (take-nth 2 options))]}
@@ -222,6 +224,12 @@ expects a codec to use for writing the header information."
               body-codec (header->body-codec header)] 
           (write-data header-codec big-out little-out header)
           (write-data body-codec big-out little-out value))))))
+
+(def nop 
+;  "Does nothing on write, returns nil on read."
+    (reify BinaryIO 
+      (read-data [_ _ _] nil)
+      (write-data [_ _ _ _])))
 
 (defn padding 
   "Make sure there is always a minimum byte `length` when writing a value.
