@@ -19,9 +19,9 @@ http://james.lab6.com/2012/01/12/bitcoin-285-bytes-that-changed-the-world"
       (read-data  [_ big-in little-in]
         (let [b (.readByte ^DataInput little-in)]
           (condp = b
-            0xfd (read-data s-le big-in little-in) 
-            0xfe (read-data i-le big-in little-in)
-            0xff (read-data l-le big-in little-in)
+            -3 #_0xfd (read-data s-le big-in little-in) 
+            -2 #_0xfe (read-data i-le big-in little-in)
+            -1 #_0xff (read-data l-le big-in little-in)
             (byte->ubyte b))))
       (write-data [_ big-out little-out value]
         (cond
@@ -33,9 +33,7 @@ http://james.lab6.com/2012/01/12/bitcoin-285-bytes-that-changed-the-world"
 (def hash (repeated :ubyte :length 32))
 
 (defn var-len [codec]
-  (header var-int-le
-          #(repeated codec :length %)
-          count))
+  (repeated codec :prefix var-int-le))
 
 (def transaction-input
   (ordered-map
@@ -67,4 +65,5 @@ http://james.lab6.com/2012/01/12/bitcoin-285-bytes-that-changed-the-world"
               :timestamp (compile-codec :int-le #(int (/ (.getTime ^java.util.Date %) 1000)) #(java.util.Date. (long (* % 1000))))
               :target :int-le
               :nonce :int-le)
-    :transactions (var-len transaction)))
+    :transactions (var-len transaction)
+    ))
