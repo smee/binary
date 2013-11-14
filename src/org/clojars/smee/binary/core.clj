@@ -29,6 +29,11 @@
 (defn byte->ubyte [b]
   (int (bit-and b 255)))
 
+(defn ubyte->byte [b]
+  (if (>= val 128)
+    (byte (- b 256))
+    (byte b)))
+
 (def primitive-codecs
   {:byte (primitive-codec .readByte .writeByte byte)
    :ubyte (primitive-codec .readUnsignedByte .writeByte byte->ubyte)
