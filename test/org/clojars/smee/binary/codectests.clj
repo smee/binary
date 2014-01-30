@@ -97,7 +97,8 @@
 (deftest paddings
   (test-all-roundtrips
     [[(padding :int-be 6 (int \x)) (int 55) [0 0 0 55 120 120]]
-     [(padding (string "UTF8" :length 6) 6) "abcdef" [97 98 99 100 101 102]]]))
+     [(padding (string "UTF8" :length 6) 6) "abcdef" [97 98 99 100 101 102]]
+     [(padding (repeated :int-le) 10 0x99) [1 2] [1 0 0 0 2 0 0 0 0x99 0x99]]]))
 
 (deftest constants
   (test-all-roundtrips
