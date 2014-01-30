@@ -108,9 +108,10 @@ Reads and writes bytes and converts them from/to strings with a specific string 
 
 ### Bits
 If you have a byte where each bit has a specific meaning you can use a set of keywords as an input.
-For example, the following definition says, that the highest bit in a byte gets the value `:a`, the next one `:b`, then `:c`. The bits 4,3, 2 and 1 are ignored, the lowest bit has the value `:last`:
+For example, the following definition says, that the lowest bit in a byte gets the value `:a`, the next one `:b`, then `:c`. The bits 4-7 are ignored, the highest bit has the value `:last`:
 
-    (bits [:a :b :c nil nil nil nil :last])
+    (decode (bits [:a :b :c nil nil nil nil :last]) instream); let's assume the next byte in instream is 2r11011010
+    => #{:b :last}
 
 If you now read a byte with the value 2r11011001 using this codec you will get the clojure set `#{:a :b:last}` as a value.
 
@@ -118,8 +119,11 @@ If you now read a byte with the value 2r11011001 using this codec you will get t
 Decodes a header using `header-codec`. Passes this datastructure to `header->body` which returns the codec to use to parse the body. For writing this codec calls `body->header` with the data as parameter and expects a codec to use for writing the header information.
 
 ### Padding
-Make sure there is always a minimum byte `length` when writing a value.
-Per default the padding are 0-bytes. Optionally a third parameter may specify the byte value to use for padding.
+Make sure there is always a minimum byte `length` when writing a value. Reads at least the given number of bytes from the inputstream before parsing it using the inner codec.
+Per default the padding bytes are 0. Optionally a third parameter may specify the byte value to use for padding.
+
+    (padding (repeated :int-le :length 100) 1024)
+    => [...] ; sequence of 100 integers, the stream will have 1024 bytes read, though
 
 ### Constant
 If a binary format uses fixed elements (like the three bytes 'ID3' in mp3), you can use this codec. It needs a codec and a fixed value. If the value read using this codec does not match the given fixed value, an exception will be thrown.
