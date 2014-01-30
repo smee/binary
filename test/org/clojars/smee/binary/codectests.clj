@@ -114,7 +114,7 @@
 (deftest headers
   (test-all-roundtrips
     [[(header :byte #(string "utf8" :length %) #(.length %)) "ABC" [3 65 66 67]]
-     ]))
+     [(header :byte #(padding (repeated :int-le) % 0x99) (constantly 11)) [5 9] [11 5 0 0 0 9 0 0 0 0x99 0x99 0x99]]]))
 
 (deftest bitcoin-block
   (test-all-roundtrips
