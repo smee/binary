@@ -30,7 +30,7 @@
   (int (bit-and b 255)))
 
 (defn ubyte->byte [b]
-  (if (>= val 128)
+  (if (>= b 128)
     (byte (- b 256))
     (byte b)))
 
@@ -215,7 +215,7 @@ Flag names `null` are ignored. There may be a maximum of 8 flags that get stored
 (defn header 
   "Decodes a header using `header-codec`. Passes this datastructure to `header->body` which returns the codec to
 use to parse the body. For writing this codec calls `body->header` with the data as parameter and
-expects a codec to use for writing the header information."
+expects a value to use for writing the header information."
   [header-codec header->body-codec body->header]
   (let [header-codec (compile-codec header-codec)]
     (reify BinaryIO 
