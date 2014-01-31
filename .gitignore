@@ -12,3 +12,6 @@ pom.xml
 .settings/
 bin/
 .project
+misc
+.idea
+.nrepl-port
