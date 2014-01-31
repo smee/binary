@@ -113,7 +113,7 @@ For example, the following definition says, that the lowest bit in a byte gets t
     (decode (bits [:a :b :c nil nil nil nil :last]) instream); let's assume the next byte in instream is 2r11011010
     => #{:b :last}
 
-If you now read a byte with the value 2r11011001 using this codec you will get the clojure set `#{:a :b:last}` as a value.
+If you now read a byte with the value 2r11011001 using this codec you will get the clojure set `#{:a :b :last}` as a value.
 
 ### Header
 Decodes a header using `header-codec`. Passes this datastructure to `header->body` which returns the codec to use to parse the body. For writing this codec calls `body->header` with the data as parameter and expects a value to use for writing the header information.
