@@ -1,5 +1,3 @@
-
-import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;

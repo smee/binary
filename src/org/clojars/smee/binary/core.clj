@@ -170,7 +170,8 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
   (let [codec (compile-codec codec)
         options (apply hash-map options)
         length (options :length)
-        prefix (options :prefix)]
+        prefix (options :prefix)
+        separator (options :separator)]
     (cond length (reify BinaryIO 
                    (read-data  [_ big-in little-in]
                      (read-times length codec big-in little-in))
@@ -189,6 +190,13 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
                        (let [length (count values)] 
                          (write-data prefix-codec big-out little-out length)
                          (dorun (map #(write-data codec big-out little-out %) values))))))
+          separator (reify BinaryIO
+                      (read-data  [_ big-in little-in]
+                        (read-until-separator codec big-in little-in separator))
+                      (write-data [_ big-out little-out values]
+                        (doseq [value values]
+                          (write-data codec big-out little-out value))
+                        (write-data codec big-out little-out separator)))
           :else (reify BinaryIO
                   (read-data  [_ big-in little-in]
                     (read-exhausting codec big-in little-in))
@@ -209,11 +217,22 @@ Example:
                     constant-value)))
 
 (defn string [^String encoding & options]
-  {:pre [(some #{:length :prefix} (take-nth 2 options))]}
+  {:pre [(some #{:length :prefix :separator} (take-nth 2 options))]}
   (compile-codec 
     (apply repeated :byte options)
     (fn string2bytes [^String s] (.getBytes s encoding))
     #(String. (byte-array %) encoding)))
+
+
+
+(defn c-string 
+  "Zero-terminated string (like in C). String is a sequence of bytes, terminated by a 0 byte."
+  [^String encoding]
+  (compile-codec 
+    (repeated :byte :separator (byte 0))
+    (fn string2bytes [^String s] (.getBytes s encoding))
+    #(String. (byte-array %) encoding)))
+
 
 (defn- bit-set? [number idx]
   (not (zero? (bit-and number (bit-shift-left 1 idx)))))
