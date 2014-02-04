@@ -44,19 +44,39 @@
      [(string "UTF8" :prefix :short-le) "ABC" [3 0 65 66 67]]
      [(string "UTF8" :length 2) "AA" [65 65]]])) 
 
+(deftest c-string-encodings
+  (test-all-roundtrips 
+    [[(c-string "UTF8") "ABC" [65 66 67 0]]
+     [(repeated (c-string "UTF8") :length 2) ["AAA" "BBB"] [65 65 65 0 66 66 66 0]]]))
+
 (deftest map-encodings
   (test-all-roundtrips
     [[(ordered-map 
         :foo :int-be
         :bar :short-le
         :baz :ubyte) {:foo 1 :bar 0, :baz 255} [0 0 0 1 0 0 255]]
+     ; if the map is no `ordered-map`, the binary order is undefined!
      [{:foo :int-be
        :bar :short-le
-       :baz :ubyte} {:foo 1 :bar 0, :baz 255}]]))
+       :baz :ubyte} {:foo 1 :bar 0, :baz 255}]
+     [{:foo :int-be
+       :baz :ubyte
+       :bar :short-le} {:foo 1 :bar 0, :baz 255}]
+     [{:baz :ubyte
+       :bar :short-le
+       :foo :int-be} {:foo 1 :bar 0, :baz 255}]]))
 
-#_(deftest map-manipulations
+(deftest map-manipulations
   (is (= 0 (count (ordered-map))))
-  (is (= [:foo :bar] (keys (ordered-map :foo :byte :bar :int)))))
+  (is (= [:foo :bar] (keys (ordered-map :foo :byte :bar :int))))
+  (test-all-roundtrips
+    [[(assoc (ordered-map :foo :int-be :bar :short-le)
+             :baz :ubyte) 
+      {:foo 1 :bar 0, :baz 255} [0 0 0 1 0 0 255]]
+     [(dissoc (ordered-map :foo :int-be :bar :short-le :baz :ubyte) :bar) 
+      {:foo 1, :baz 255} [0 0 0 1 255]]
+     [(into (ordered-map) [[:foo :int-be] [:bar :short-le] [:baz :ubyte]])
+      {:foo 1 :bar 0, :baz 255} [0 0 0 1 0 0 255]]]))
 
 (deftest repeated-encodings
   (test-all-roundtrips

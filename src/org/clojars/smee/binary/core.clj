@@ -72,7 +72,7 @@
   [& kvs]
   {:pre [(even? (count kvs))]} 
   (let [ks (take-nth 2 kvs)
-        vs (map compile-codec (take-nth 2 (rest kvs)))
+        vs (take-nth 2 (rest kvs))
         key-order (into {} (map-indexed #(vector %2 %) ks))
         internal-map (apply sorted-map-by (comparator #(< (key-order % java.lang.Long/MAX_VALUE) (key-order %2 java.lang.Long/MAX_VALUE))) kvs)]
     (reify 
@@ -85,20 +85,20 @@
                     vs
                     (map #(get value %) ks))))
       
-;      java.lang.Object
-;       (toString [this] 
-;         (str internal-map))
-;      
-;      clojure.lang.ILookup
-;      (valAt [_ key]
-;        (get internal-map key))
-;      (valAt [_ key not-found]
-;        (get internal-map key not-found))
-;      
-;      clojure.lang.Counted
-;      (count [_]
-;         (count internal-map))
-;      
+      java.lang.Object
+       (toString [this] 
+         (str internal-map))
+      
+      clojure.lang.ILookup
+      (valAt [_ key]
+        (get internal-map key))
+      (valAt [_ key not-found]
+        (get internal-map key not-found))
+      
+      clojure.lang.Counted
+      (count [_]
+         (count internal-map))
+      
 ;       clojure.lang.Associative
 ;       (containsKey [_ k] 
 ;         (contains? internal-map k))
@@ -106,23 +106,33 @@
 ;         (get internal-map k))
 ;       (assoc [this k v]  
 ;         (apply ordered-map (apply concat (seq (assoc internal-map k v)))))
-;       
-;       clojure.lang.IPersistentCollection
-;       (cons [this [k v]]  
-;         (assoc this k v))
-;       (empty [_]
-;         (ordered-map))
-;       (equiv [_ other]
-;         false)
-;
-;       clojure.lang.Seqable
-;       (seq [_] 
-;         (seq internal-map))
-;
-;       ;; Java interfaces
-;       java.lang.Iterable
-;       (iterator [this] 
-;         (.iterator (seq this)))
+       
+       clojure.lang.IPersistentMap
+       (assoc [this k v]
+         (apply ordered-map (apply concat (seq (assoc internal-map k v)))))
+       (assocEx [this k v]
+         (if (internal-map k) 
+           (throw (ex-info "Key already present" {:key k}))
+           (apply ordered-map (apply concat (seq (assoc internal-map k v))))))
+       (without [this k]
+         (apply ordered-map (apply concat (seq (dissoc internal-map k)))))
+       
+       clojure.lang.IPersistentCollection
+       (cons [this [k v]]  
+         (assoc this k v))
+       (empty [_]
+         (ordered-map))
+       (equiv [_ other]
+         false)
+
+       clojure.lang.Seqable
+       (seq [_] 
+         (seq internal-map))
+
+       ;; Java interfaces
+       java.lang.Iterable
+       (iterator [this] 
+         (.iterator (seq this)))
        )))
 
 (defmacro ^:private read-times 
