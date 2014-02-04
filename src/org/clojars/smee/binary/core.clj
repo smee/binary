@@ -297,28 +297,42 @@ byte value to use for padding"
             (do
               (.write ^DataOutputStream big-out arr 0 len)
               (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-value)))))))))
+
 ;;;;;;; internal compilation of the DSL into instances of `BinaryIO`
-
-(defn- sequence-codec [v]
-  {:pre [(vector? v) (not-empty v)]}
-  (reify BinaryIO 
-    (read-data  [codec big-in little-in]
-        (mapv #(read-data % big-in little-in) v))
-    (write-data [codec big-out little-out values]
-        (dorun (map #(write-data % big-out little-out %2) v values)))))
-
-(defn- compile-tree [codec]
-  (->> codec
-    (walk/postwalk-replace primitive-codecs)
-    (walk/prewalk #(cond 
-                      (vector? %) (sequence-codec %) ; FIXME when transforming a map we get vectors per map entry, breaks this compiler :(
-                      (map? %) (apply ordered-map (interleave (keys %) (vals %)))
-                      :else %))))
+;; 
+;; let sequences, vectors, maps and primitive's keywords implement BinaryIO
+;; that means, compile-codec is optional!
+(extend-protocol BinaryIO
+  clojure.lang.ISeq
+  (read-data [this big-in little-in]
+    (map #(read-data % big-in little-in) this))
+  (write-data [this big-out little-out values]
+    (dorun (map #(write-data % big-out little-out %2) this values)))
+  
+  clojure.lang.IPersistentVector
+  (read-data [this big-in little-in]
+    (mapv #(read-data % big-in little-in) this))
+  (write-data [this big-out little-out values]
+    (dorun (map #(write-data % big-out little-out %2) this values)))
+  
+  clojure.lang.Keyword
+  (read-data [kw big-in little-in]
+    (read-data (primitive-codecs kw) big-in little-in))
+  (write-data [kw big-out little-out value]
+    (write-data (primitive-codecs kw) big-out little-out value))
+  
+  clojure.lang.IPersistentMap
+  (read-data  [m big-in little-in]
+    (zipmap (keys m) (map #(read-data % big-in little-in) (vals m))))
+  (write-data [m big-out little-out value] 
+    (dorun (map (fn [[k v]] (write-data (get m k) big-out little-out v)) value))))
 
 (defn compile-codec 
-  ([codec] (if (codec? codec) codec (compile-tree codec)))
+  ([codec] (if (codec? codec) 
+             codec 
+             (throw (ex-info (str codec " does not satisfy the protocol BinaryIO!" ) {:codec codec}))))
   ([codec pre-encode post-decode]
-    (let [codec (compile-tree codec)]
+    (let [codec (compile-codec codec)]
       (reify BinaryIO
         (read-data  [_ big-in little-in]
           (post-decode (read-data codec big-in little-in)))

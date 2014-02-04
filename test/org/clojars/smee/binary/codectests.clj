@@ -18,7 +18,8 @@
 
 (defn- test-all-roundtrips [test-cases]
   (doseq [[codec value bytes] test-cases]
-    (test-roundtrip (compile-codec codec) value bytes)))
+    (is (codec? codec)) 
+    (test-roundtrip codec value bytes)))
 
 (deftest primitive-encodings
   (test-all-roundtrips
