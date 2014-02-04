@@ -135,21 +135,30 @@
          (.iterator (seq this)))
        )))
 
-(defmacro ^:private read-times 
+(defn- read-times 
   "Performance optimization for `(repeatedly n #(read-data codec big-in little-in))`"
   [n codec big-in little-in]
-  `(loop [n# (int ~n), res# (transient [])] 
-    (if (zero? n#) 
-      (persistent! res#) 
-      (recur (dec n#) (conj! res# (read-data ~codec ~big-in ~little-in))))))
+  (loop [n (int n), res (transient [])] 
+    (if (zero? n) 
+      (persistent! res) 
+      (recur (dec n) (conj! res (read-data codec big-in little-in))))))
 
-(defmacro ^:private read-exhausting 
+(defn- read-exhausting 
   "Performance optimization for `(take-while (complement nil? )(repeatedly n #(read-data codec big-in little-in)))`"
   [codec big-in little-in]
-  `(loop [res# (transient [])] 
-    (if-let [value# (try (read-data ~codec ~big-in ~little-in) (catch java.io.EOFException e# nil))]
-      (recur (conj! res# value#))
-      (persistent! res#))))
+  (loop [res (transient [])] 
+    (if-let [value (try (read-data codec big-in little-in) (catch java.io.EOFException e nil))]
+      (recur (conj! res value))
+      (persistent! res))))
+
+(defn- read-until-separator 
+  "Read until the read value equals `separator`."
+  [codec big-in little-in separator]
+  (loop [res (transient [])] 
+    (let [value (read-data codec big-in little-in)]
+      (if (= value separator)
+        (persistent! res)
+        (recur (conj! res value))))))
 
 (defn repeated 
   "Read a sequence of values. Options are pairs of keys and values with possible keys:
@@ -172,14 +181,14 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
                          (write-data codec big-out little-out value)))))
           ; use prefix-codec?
           prefix (let [prefix-codec (compile-codec prefix)] 
-                              (reify BinaryIO 
-                                (read-data  [_ big-in little-in]
-                                  (let [length (read-data prefix-codec big-in little-in)]
-                                    (read-times length codec big-in little-in)))
-                                (write-data [_ big-out little-out values]
-                                  (let [length (count values)] 
-                                    (write-data prefix-codec big-out little-out length)
-                                    (dorun (map #(write-data codec big-out little-out %) values))))))
+                   (reify BinaryIO 
+                     (read-data  [_ big-in little-in]
+                       (let [length (read-data prefix-codec big-in little-in)]
+                         (read-times length codec big-in little-in)))
+                     (write-data [_ big-out little-out values]
+                       (let [length (count values)] 
+                         (write-data prefix-codec big-out little-out length)
+                         (dorun (map #(write-data codec big-out little-out %) values))))))
           :else (reify BinaryIO
                   (read-data  [_ big-in little-in]
                     (read-exhausting codec big-in little-in))
