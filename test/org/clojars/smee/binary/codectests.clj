@@ -171,6 +171,11 @@
     (is (= [2 3] (decode codec bis)))
     (is (= 2 (.available bis)))))
 
+(deftest last-separator-is-optional
+  (let [codec (repeated (string "UTF8" :separator 0))
+        bis (java.io.ByteArrayInputStream. (.getBytes "abc\u0000def\u0000ghi" "UTF-8"))]
+    (is (= ["abc" "def" "ghi"] (decode codec bis)))))
+
 #_(deftest protobuf
   (test-all-roundtrips
     [[pb/proto-key [150 0] [8]]

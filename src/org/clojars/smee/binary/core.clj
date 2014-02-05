@@ -132,8 +132,7 @@
        ;; Java interfaces
        java.lang.Iterable
        (iterator [this] 
-         (.iterator (seq this)))
-       )))
+         (.iterator (seq this))))))
 
 (defn- read-times 
   "Performance optimization for `(repeatedly n #(read-data codec big-in little-in))`"
@@ -153,12 +152,19 @@
 
 (defn- read-until-separator 
   "Read until the read value equals `separator`."
-  [codec big-in little-in separator]
-  (loop [res (transient [])] 
-    (let [value (read-data codec big-in little-in)]
-      (if (= value separator)
+  [codec big-in little-in separator] 
+  (loop [res (transient []), empty? true] 
+    (let [value (try 
+                  (read-data codec big-in little-in) 
+                  (catch java.io.EOFException e 
+                    (if empty? ;there is no value read yet, but the stream is empty 
+                      (throw e)
+                      ;else: there seems to be no more bytes, so just return what we have
+                      separator)))]
+      (if 
+        (= value separator) 
         (persistent! res)
-        (recur (conj! res value))))))
+        (recur (conj! res value) false)))))
 
 (defn repeated 
   "Read a sequence of values. Options are pairs of keys and values with possible keys:
