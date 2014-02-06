@@ -140,6 +140,12 @@
     [[(header :byte #(string "utf8" :length %) #(.length %)) "ABC" [3 65 66 67]]
      [(header :byte #(padding (repeated :int-le) % 0x99) (constantly 11)) [5 9] [11 5 0 0 0 9 0 0 0 0x99 0x99 0x99]]]))
 
+(deftest enums
+  (test-all-roundtrips
+    [[(enum :byte {:apple 1 :banana 2 :durian 3}) :durian [3]]
+     [(enum (string "UTF8" :length 2) {:alabama "AL" :alaska "AK" :arizona "AZ"}) :alaska [65 75]]
+     [(enum (ordered-map :red :ubyte :green :ubyte :blue :ubyte) {:yellow {:red 255 :green 255 :blue 0}}) :yellow [255 255 0]]]))
+
 (deftest bitcoin-block
   (test-all-roundtrips
     [[btc/block-codec
