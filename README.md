@@ -108,8 +108,11 @@ If you use clojure's map literals, the order of the binary values is unspecified
 
 - `:length` gives a fixed length. E.g. `(repeated :int-le :length 5)` will try to read/write exactly five little-endian 32bit integers from/to a stream
 - `:prefix` takes another codec that will get read/written first. This `codec` contains the length for the successive read/write of the repeated values. Example: `(repeated :int-le :prefix :short-le)` will first read a short and tries then to read as many integers as specified in this short value.
-- `:separator` will read values using the codec until the value read is the same as the given separator value. An example would be `(repeated :byte :separator (byte 0)` for null-tokenized c-strings. If the separator would be the last element in the stream, it is optional (think of comma-separated value where the last column may not have a trailing comma).
-- No parameter will read until exhaustion of the stream.
+- `:separator` will read values using the codec until the value read is the same as the given separator value. An example would be `(repeated :byte :separator (byte 0)` for null-tokenized c-strings. If the separator would be the last element in the stream, it is optional (think of comma-separated value where the last column may not have a trailing comma). 
+
+**Caution**: When writing the data there **WILL** be a final separator. This means, the written data may have more bytes than initially read!
+
+- No parameter means: read until exhaustion of the stream (EOF).
 
 ### String
 

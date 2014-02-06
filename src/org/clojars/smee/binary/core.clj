@@ -168,8 +168,12 @@
 
 (defn repeated 
   "Read a sequence of values. Options are pairs of keys and values with possible keys:
-`:length` fixed length of the sequence
-`:prefix` codec for the length of the sequence to read prior to the sequence itself.
+- `:length` fixed length of the sequence
+- `:prefix` codec for the length of the sequence to read prior to the sequence itself.
+- `:separator` reads until the read value equals the given separator value. EOF of a stream is regarded a separator too.
+That means if the last token is the last element in a stream, the final separator may be missing. Caution: When
+writing the data there WILL be a final separator. This means, the written data may have more bytes than initially read!
+
 If there is no options, the decoder tries to read continuously until the stream is exhausted.
 Example: To read a sequence of integers with a byte prefix for the length use `(repeated :byte :prefix :int)`"
   [codec & options]
