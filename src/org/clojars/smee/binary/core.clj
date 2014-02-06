@@ -311,6 +311,20 @@ byte value to use for padding"
               (.write ^DataOutputStream big-out arr 0 len)
               (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-value)))))))))
 
+(defn- map-invert [m]
+  {:post [(= (count (keys %)) (count (keys m)))]}
+  (into {} (for [[k v] m] [v k])))
+
+(defn- strict-map [m]
+  (fn [k] {:pre [(contains? m k)]} (m k)))
+
+(defn enum [codec m]
+  "An enumerated value. `m` must be a 1-to-1 mapping of names (e.g. keywords) to their decoded values.
+Only names and values in `m` will be accepted when encoding or decoding."
+  (compile-codec codec
+    (strict-map m)
+    (strict-map (map-invert m))))
+
 ;;;;;;; internal compilation of the DSL into instances of `BinaryIO`
 ;; 
 ;; let sequences, vectors, maps and primitive's keywords implement BinaryIO
