@@ -240,21 +240,24 @@ Example:
     #(String. (byte-array %) encoding)))
 
 
-(defn- bit-set? [number idx]
-  (not (zero? (bit-and number (bit-shift-left 1 idx)))))
-(defn- set-bit [byte idx]
-  (bit-or byte (bit-shift-left 1 idx)))
+(defn- bit-set? [bytes idx]
+  (not (zero? (bit-and (bytes (- (count bytes) 1 (quot idx 8)))
+                       (bit-shift-left 1 (mod idx 8))))))
+(defn- set-bit [bytes idx]
+  (update-in bytes [(- (count bytes) 1 (quot idx 8))]
+                   #(bit-or % (bit-shift-left 1 (mod idx 8)))))
 
 (defn bits 
   "`flags` is a sequence of flag names. Each flag's index corresponds to the bit with that index.
-Flag names `null` are ignored. There may be a maximum of 8 flags that get stored in one byte."
-  [flags] {:pre [(<= (count flags) 8)]}
-  (let [idx->flags (into {} (keep-indexed #(when %2 [%1 %2]) flags))
+Flag names `null` are ignored. Bit count will be padded up to the next multiple of 8."
+  [flags]
+  (let [byte-count (int (Math/ceil (/ (count flags) 8)))
+        idx->flags (into {} (keep-indexed #(when %2 [%1 %2]) flags))
         flags->idx (into {} (keep-indexed #(when %2 [%2 %1]) flags))
         bit-indices (sort (keys idx->flags))]
-    (compile-codec :byte 
-                   (fn [flags] (reduce #(set-bit % %2) (byte 0) (vals (select-keys flags->idx flags))))
-                   (fn [byte] (set (map idx->flags (filter #(bit-set? byte %) bit-indices)))))))
+    (compile-codec (repeated :byte :length byte-count)
+                   (fn [flags] (reduce #(set-bit % %2) (into [] (byte-array byte-count)) (vals (select-keys flags->idx flags))))
+                   (fn [bytes] (set (map idx->flags (filter #(bit-set? bytes %) bit-indices)))))))
 
 (defn header 
   "Decodes a header using `header-codec`. Passes this datastructure to `header->body` which returns the codec to
