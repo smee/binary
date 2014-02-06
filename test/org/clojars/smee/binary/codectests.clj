@@ -115,7 +115,8 @@
        (string "UTF-8" :length 5) "X"
        (repeated :int :length 3) [1 2]
        (padding :int-le 1) (int 1234)
-       (padding :int-le 3) (int 1234)))
+       (padding :int-le 3) (int 1234)
+       (padding (repeated (string "UTF-8" :separator 0)) 1) ["abc" "def" "ghi"]))
 
 (deftest paddings
   (test-all-roundtrips
@@ -176,6 +177,7 @@
   (let [codec (repeated (string "UTF8" :separator 0))
         bis (java.io.ByteArrayInputStream. (.getBytes "abc\u0000def\u0000ghi" "UTF-8"))]
     (is (= ["abc" "def" "ghi"] (decode codec bis)))))
+
 
 #_(deftest protobuf
   (test-all-roundtrips

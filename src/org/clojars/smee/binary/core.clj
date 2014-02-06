@@ -305,8 +305,8 @@ byte value to use for padding"
               arr (.toByteArray baos)
               len (alength arr)
               padding-bytes-left (max 0 (- length len))]
-          (if (> 0 (- length len)) 
-            (throw (IllegalArgumentException. (str "Data should be max. " length " bytes, but attempting to write " (Math/abs padding-bytes-left) " bytes more!")))
+          (if (< (- length len) 0) 
+            (throw (ex-info (str "Data should be max. " length " bytes, but attempting to write " (Math/abs (- len length)) " bytes more!") {:overflow-bytes (Math/abs (- len length))}))
             (do
               (.write ^DataOutputStream big-out arr 0 len)
               (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-value)))))))))
