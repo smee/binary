@@ -99,6 +99,7 @@
 (deftest bitmasks
   (test-all-roundtrips
     [[(bits [:a :b :c nil nil nil nil :last]) #{:c :last} [(binary "10000100")]]
+     [(bits [:0 :1 nil nil nil nil :6 :7 :8 nil :10]) #{:1 :7 :10} [2r00000100 2r10000010]]
      [(bits [:flag1 :flag2]) #{:flag2} [(binary "00000010")]]
      [(bits [:flag1 :flag2]) #{} [(binary "00000000")]]]))
 
