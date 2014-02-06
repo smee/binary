@@ -144,13 +144,25 @@ If you now read a byte with the value 2r11011001 using this codec you will get t
 Decodes a header using `header-codec`. Passes this datastructure to `header->body` which returns the codec to use to parse the body. For writing this codec calls `body->header` with the data as parameter and expects a value to use for writing the header information.
 
 ### Padding
-Make sure there is always a minimum byte `length` when writing a value. Reads at least the given number of bytes from the inputstream before parsing it using the inner codec.
-Per default the padding bytes are 0. Optionally a third parameter may specify the byte value to use for padding.
+Make sure there is always a minimum byte `length` when reading/writing values.
+Works by reading `length` bytes into a byte array, then reading from that array using `inner-codec`.
+Currently there are two options:
+- `:padding-byte` is the numeric value of the byte used for padding (default is 0)
+- `:truncate?` is a boolean flag that determines the behaviour if `inner-codec` writes more bytes than
+`padding` can handle: false is the default, meaning throw an exception. True will lead to truncating the
+output of `inner-codec`.
+
+Examples:
 
 ``` clojure
-(padding (repeated :int-le :length 100) 1024)
+(padding (repeated :int-le :length 100) 1024 :padding-byte (byte \x))
 => [...] ; sequence of 100 integers, the stream will have 1024 bytes read, though
+
+(encode (padding (repeated (string \"UTF8\" :separator 0)) 11 :truncate? true) outstream [\"abc\" \"def\" \"ghi\"])
+=> ; writes bytes [97 98 99 0 100 101 102 0 103 104 105]
+   ; observe: the last separator byte was truncated!
 ```
+
 
 ### Constant
 If a binary format uses fixed elements (like the three bytes 'ID3' in mp3), you can use this codec. It needs a codec and a fixed value. If the value read using this codec does not match the given fixed value, an exception will be thrown.

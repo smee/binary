@@ -282,13 +282,28 @@ expects a value to use for writing the header information."
           (write-data body-codec big-out little-out value))))))
 
 (defn padding 
-  "Make sure there is always a minimum byte `length` when writing a value.
-Per default the padding are 0-bytes. Optionally a third parameter may specify the
-byte value to use for padding"
-  [inner-codec length & [byte-value]]
-  {:pre [(number? length) (or (nil? byte-value) (number? byte-value))]}
+  "Make sure there is always a minimum byte `length` when reading/writing values.
+Works by reading `length` bytes into a byte array, then reading from that array using `inner-codec`.
+Currently there are two options:
+- `:padding-byte` is the numeric value of the byte used for padding (default is 0)
+- `:truncate?` is a boolean flag that determines the behaviour if `inner-codec` writes more bytes than
+`padding` can handle: false is the default, meaning throw an exception. True will lead to truncating the
+output of `inner-codec`.
+
+Example:
+    (encode (padding (repeated (string \"UTF8\" :separator 0)) 11 :truncate? true) outstream [\"abc\" \"def\" \"ghi\"])
+    => ; writes bytes [97 98 99 0 100 101 102 0 103 104 105]
+       ; observe: the last separator byte was truncated!"
+  [inner-codec length & options]
+  {:pre [(number? length) (or (empty? options) 
+                              (number? (first options))
+                              (even? (count options)))]}
   (let [inner-codec (compile-codec inner-codec)
-        padding-value (or byte-value (byte 0))]
+        options (cond 
+                  (even? (count options)) (apply hash-map options)
+                  (number? (first options)) {:padding-byte (first options)}
+                  :else (throw (ex-info "unknown options, please use onlye keys `:truncate?` and `:padding-byte`" {:wrong-options options})))
+        {:keys [truncate? padding-byte] :or {padding-byte 0, truncate? false}} options]
     (reify BinaryIO 
       (read-data  [_ big-in _]
         (let [bytes (byte-array length)
@@ -303,13 +318,13 @@ byte value to use for padding"
               little-o (LittleEndianDataOutputStream. baos)
               _ (write-data inner-codec big-o little-o value)
               arr (.toByteArray baos)
-              len (alength arr)
+              len (if truncate? length (.size baos))
               padding-bytes-left (max 0 (- length len))]
           (if (< (- length len) 0) 
             (throw (ex-info (str "Data should be max. " length " bytes, but attempting to write " (Math/abs (- len length)) " bytes more!") {:overflow-bytes (Math/abs (- len length))}))
             (do
               (.write ^DataOutputStream big-out arr 0 len)
-              (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-value)))))))))
+              (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-byte)))))))))
 
 (defn- map-invert [m]
   {:post [(= (count (keys %)) (count (keys m)))]}

@@ -4,6 +4,9 @@
   (:require [org.clojars.smee.binary.demo.protobuf :as pb]
             [org.clojars.smee.binary.demo.bitcoin :as btc]))
 
+(defn s2b [^String s]
+  (vec (.getBytes s "UTF-8")))
+
 (defn- test-roundtrip [codec value expected-bytes] 
   (let [baos (java.io.ByteArrayOutputStream.)
         _ (encode codec baos value)
@@ -124,6 +127,10 @@
      [(padding (string "UTF8" :length 6) 6) "abcdef" [97 98 99 100 101 102]]
      [(padding (repeated :int-le) 10 0x99) [1 2] [1 0 0 0 2 0 0 0 0x99 0x99]]]))
 
+(deftest padding-truncate
+  (test-all-roundtrips
+    [[(padding (repeated (string "UTF8" :separator 0)) 11 :truncate? true) ["abc" "def" "ghi"] (s2b "abc\u0000def\u0000ghi")]]))
+
 (deftest constants
   (test-all-roundtrips
     [[(constant :int-le 7) 7 [7 0 0 0]]
@@ -178,12 +185,6 @@
     (is (= 5 (.available bis)))
     (is (= [2 3] (decode codec bis)))
     (is (= 2 (.available bis)))))
-
-(deftest last-separator-is-optional
-  (let [codec (repeated (string "UTF8" :separator 0))
-        bis (java.io.ByteArrayInputStream. (.getBytes "abc\u0000def\u0000ghi" "UTF-8"))]
-    (is (= ["abc" "def" "ghi"] (decode codec bis)))))
-
 
 #_(deftest protobuf
   (test-all-roundtrips
