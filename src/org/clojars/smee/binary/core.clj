@@ -24,7 +24,7 @@
           (~cast-fn (~get-fn ~(with-meta in {:tag "UnsignedDataInput"}))))
        (write-data [codec# ~big-out ~little-out value#]
           (~write-fn ~(with-meta out {:tag "UnsignedDataOutput"}) value#))
-       Object (toString [_] (str "<BinaryIO " '~get-fn ">")))))
+       Object (toString [_#] (str "<BinaryIO " '~get-fn ">")))))
 
 (defn byte->ubyte [b]
   (int (bit-and b 255)))
