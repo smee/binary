@@ -11,7 +11,7 @@
   (satisfies? BinaryIO codec))
 
 (defmacro ^:private primitive-codec
-  "Create an reification of `BinaryIO` that can read/write a primmitive data type."
+  "Create a reification of `BinaryIO` that can read/write a primmitive data type."
   [get-fn write-fn cast-fn & [endianess]]
   (let [big-in     (gensym "big-in")
         little-in  (gensym "little-in")
@@ -384,14 +384,14 @@ Only names and values in `m` will be accepted when encoding or decoding."
 ;;;;;;;;;;;;;; API for en-/decoding
 
 (defn encode
-  "Serialize a value to the outputstream out according to the codec."
+  "Serialize a value to the OutputStream `out` according to the codec."
   [codec out value]
   (let [big-out (BigEndianDataOutputStream. out)
         little-out (LittleEndianDataOutputStream. out)]
     (write-data codec big-out little-out value)))
 
 (defn decode
-  "Serialize a value to the outputstream out according to the codec."
+  "Deserialize a value from the InputStream `in` according to the codec."
   [codec in]
   (let [big-in (BigEndianDataInputStream. in)
         little-in (LittleEndianDataInputStream. in)]
