@@ -7,15 +7,19 @@
 (defn s2b [^String s]
   (vec (.getBytes s "UTF-8")))
 
+(defn- byte-array? [value]
+  (= (Class/forName "[B") (class value)))
+
 (defn- test-roundtrip [codec value expected-bytes]
   (let [baos (java.io.ByteArrayOutputStream.)
         _ (encode codec baos value)
         arr (.toByteArray baos)
         encoded-bytes (map byte->ubyte (seq arr))
-        decoded (decode codec (java.io.ByteArrayInputStream. arr))]
+        decoded (decode codec (java.io.ByteArrayInputStream. arr))
+        equals (if (byte-array? value) #(java.util.Arrays/equals %1 %2) =)]
 ;    (println codec value expected-bytes decoded (java.lang.Long/toBinaryString decoded)) (doseq [b encoded-bytes] (print (java.lang.Integer/toHexString b) " ")) (println)
     (is (= (class decoded) (class value)))
-    (is (= decoded value))
+    (is (equals decoded value))
     (when expected-bytes
       (is (= encoded-bytes expected-bytes)))))
 
@@ -91,6 +95,12 @@
      [(repeated :short-le) (vec (range 5)) [0 0 1 0 2 0 3 0 4 0]]
      [(repeated :short-le :separator 123) (vec (range 5)) [0 0 1 0 2 0 3 0 4 0 123 0]]]))
 
+(deftest blob-encodings
+  (test-all-roundtrips
+    [[(blob) (byte-array 1025 (byte 42)) (repeat 1025 42)]
+     [(blob :length 7) (byte-array 7) (repeat 7 0)]
+     [(blob :prefix :byte) (byte-array 7) (cons 7 (repeat 7 0))]]))
+
 (deftest sequence-encodings
   (test-all-roundtrips
     [[[:byte :byte] [1 2] [1 2]]
@@ -117,6 +127,7 @@
   (are [codec values] (is (thrown? java.lang.RuntimeException (encode codec (NullOutputStream.) values)))
        (string "UTF-8" :length 5) "X"
        (repeated :int :length 3) [1 2]
+       (blob :length 3) (byte-array 2)
        (padding :int-le 1) (int 1234)
        (padding :int-le 3) (int 1234)
        (padding (repeated (string "UTF-8" :separator 0)) 1) ["abc" "def" "ghi"]))

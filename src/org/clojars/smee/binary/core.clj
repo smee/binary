@@ -1,5 +1,5 @@
 (ns org.clojars.smee.binary.core
-  (:use [clojure.java.io :only (input-stream output-stream)])
+  (:use [clojure.java.io :only (input-stream output-stream copy)])
   (:import [java.io DataInput DataOutput DataInputStream DataOutputStream InputStream ByteArrayInputStream ByteArrayOutputStream])
   (:require [clojure.walk :as walk]))
 
@@ -209,6 +209,39 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
                   (write-data [_ big-out little-out values]
                     (doseq [value values]
                       (write-data codec big-out little-out value)))))))
+
+(defn- read-bytes [in len]
+  (let [bytes (byte-array len)]
+    (while (not (neg? (.read in bytes))))
+    bytes))
+
+(defn blob
+  "Reads a chunk of binary data as a Java byte array.
+Options as in `repeated`, except :separator is not supported."
+  [& {:keys [length prefix]}]
+  (cond length (reify BinaryIO
+                 (read-data  [_ big-in little-in]
+                   (read-bytes big-in length))
+                 (write-data [_ big-out little-out bytes]
+                   (if (not= length (alength bytes))
+                     (throw (java.lang.IllegalArgumentException. (str "This sequence should have length " length " but has really length " (alength bytes))))
+                     (.write big-out bytes))))
+        prefix (let [prefix-codec (compile-codec prefix)]
+                 (reify BinaryIO
+                   (read-data  [_ big-in little-in]
+                     (let [length (read-data prefix-codec big-in little-in)]
+                       (read-bytes big-in length)))
+                   (write-data [_ big-out little-out bytes]
+                     (let [length (alength bytes)]
+                       (write-data prefix-codec big-out little-out length)
+                       (.write big-out bytes)))))
+        :else (reify BinaryIO
+                (read-data  [_ big-in little-in]
+                  (let [byte-stream (ByteArrayOutputStream.)]
+                    (copy big-in byte-stream)
+                    (.toByteArray byte-stream)))
+                (write-data [_ big-out little-out bytes]
+                  (.write big-out bytes)))))
 
 (defn constant
   "Reads a constant value, ignores given value on write. Can be used as a version tag for a composite codec.
