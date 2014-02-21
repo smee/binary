@@ -7,21 +7,21 @@
 (defn s2b [^String s]
   (vec (.getBytes s "UTF-8")))
 
-(defn- test-roundtrip [codec value expected-bytes] 
+(defn- test-roundtrip [codec value expected-bytes]
   (let [baos (java.io.ByteArrayOutputStream.)
         _ (encode codec baos value)
         arr (.toByteArray baos)
         encoded-bytes (map byte->ubyte (seq arr))
         decoded (decode codec (java.io.ByteArrayInputStream. arr))]
-;    (println codec value expected-bytes decoded (java.lang.Long/toBinaryString decoded)) (doseq [b encoded-bytes] (print (java.lang.Integer/toHexString b) " ")) (println)    
+;    (println codec value expected-bytes decoded (java.lang.Long/toBinaryString decoded)) (doseq [b encoded-bytes] (print (java.lang.Integer/toHexString b) " ")) (println)
     (is (= (class decoded) (class value)))
-    (is (= decoded value))  
+    (is (= decoded value))
     (when expected-bytes
       (is (= encoded-bytes expected-bytes)))))
 
 (defn- test-all-roundtrips [test-cases]
   (doseq [[codec value bytes] test-cases]
-    (is (codec? codec)) 
+    (is (codec? codec))
     (test-roundtrip codec value bytes)))
 
 (deftest primitive-encodings
@@ -42,20 +42,20 @@
      ]))
 
 (deftest string-encodings
-  (test-all-roundtrips 
+  (test-all-roundtrips
     [[(string "UTF8" :prefix :byte) "ABC" [3 65 66 67]]
      [(string "UTF8" :prefix :int-be) "ABC" [0 0 0 3 65 66 67]]
      [(string "UTF8" :prefix :short-le) "ABC" [3 0 65 66 67]]
-     [(string "UTF8" :length 2) "AA" [65 65]]])) 
+     [(string "UTF8" :length 2) "AA" [65 65]]]))
 
 (deftest c-string-encodings
-  (test-all-roundtrips 
+  (test-all-roundtrips
     [[(c-string "UTF8") "ABC" [65 66 67 0]]
      [(repeated (c-string "UTF8") :length 2) ["AAA" "BBB"] [65 65 65 0 66 66 66 0]]]))
 
 (deftest map-encodings
   (test-all-roundtrips
-    [[(ordered-map 
+    [[(ordered-map
         :foo :int-be
         :bar :short-le
         :baz :ubyte) {:foo 1 :bar 0, :baz 255} [0 0 0 1 0 0 255]]
@@ -75,9 +75,9 @@
   (is (= [:foo :bar] (keys (ordered-map :foo :byte :bar :int))))
   (test-all-roundtrips
     [[(assoc (ordered-map :foo :int-be :bar :short-le)
-             :baz :ubyte) 
+             :baz :ubyte)
       {:foo 1 :bar 0, :baz 255} [0 0 0 1 0 0 255]]
-     [(dissoc (ordered-map :foo :int-be :bar :short-le :baz :ubyte) :bar) 
+     [(dissoc (ordered-map :foo :int-be :bar :short-le :baz :ubyte) :bar)
       {:foo 1, :baz 255} [0 0 0 1 255]]
      [(into (ordered-map) [[:foo :int-be] [:bar :short-le] [:baz :ubyte]])
       {:foo 1 :bar 0, :baz 255} [0 0 0 1 0 0 255]]]))
@@ -137,7 +137,7 @@
      [(constant (string "UTF8" :length 2) "AB") "AB" [65 66]]]))
 
 (deftest constants-exception-on-wrong-value
-  (let [codec (constant (string "UTF8" :length 2) "AB")] 
+  (let [codec (constant (string "UTF8" :length 2) "AB")]
     (test-roundtrip codec "AB" [65 66])
     (is (thrown? java.lang.AssertionError
                  (decode codec (java.io.ByteArrayInputStream. (byte-array [(byte 0) (byte 0)])))))))
@@ -156,22 +156,22 @@
 (deftest bitcoin-block
   (test-all-roundtrips
     [[btc/block-codec
-      {:transactions 
-       [{:lock-time 0, 
-         :outputs [{:script [[4 103 138 253 176 254 85 72 39 25 103 241 166 113 48 183 16 92 214 168 40 224 57 9 166 121 98 224 234 31 97 222 182 73 246 188 63 76 239 56 196 243 85 4 229 30 193 18 222 92 56 77 247 186 11 141 87 138 76 112 43 107 241 29 95] :OP_CHECKSIG], 
-                    :amount 5000000000}], 
-         :inputs [{:sequence-number -1, 
-                   :script [[255 255 0 29] [4] [84 104 101 32 84 105 109 101 115 32 48 51 47 74 97 110 47 50 48 48 57 32 67 104 97 110 99 101 108 108 111 114 32 111 110 32 98 114 105 110 107 32 111 102 32 115 101 99 111 110 100 32 98 97 105 108 111 117 116 32 102 111 114 32 98 97 110 107 115]], 
-                   :index -1, 
-                   :hash [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]}], 
-         :transaction-version 1}], 
-       :header {:nonce 2083236893, 
-                :target 486604799, 
-                :timestamp #inst "2009-01-03T18:15:05.000-00:00", 
-                :merkle-root [59 163 237 253 122 123 18 178 122 199 44 62 103 118 143 97 127 200 27 195 136 138 81 50 58 159 184 170 75 30 94 74], 
-                :previous-hash [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0], 
-                :block-version 1}, 
-       :length 285, 
+      {:transactions
+       [{:lock-time 0,
+         :outputs [{:script [[4 103 138 253 176 254 85 72 39 25 103 241 166 113 48 183 16 92 214 168 40 224 57 9 166 121 98 224 234 31 97 222 182 73 246 188 63 76 239 56 196 243 85 4 229 30 193 18 222 92 56 77 247 186 11 141 87 138 76 112 43 107 241 29 95] :OP_CHECKSIG],
+                    :amount 5000000000}],
+         :inputs [{:sequence-number -1,
+                   :script [[255 255 0 29] [4] [84 104 101 32 84 105 109 101 115 32 48 51 47 74 97 110 47 50 48 48 57 32 67 104 97 110 99 101 108 108 111 114 32 111 110 32 98 114 105 110 107 32 111 102 32 115 101 99 111 110 100 32 98 97 105 108 111 117 116 32 102 111 114 32 98 97 110 107 115]],
+                   :index -1,
+                   :hash [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]}],
+         :transaction-version 1}],
+       :header {:nonce 2083236893,
+                :target 486604799,
+                :timestamp #inst "2009-01-03T18:15:05.000-00:00",
+                :merkle-root [59 163 237 253 122 123 18 178 122 199 44 62 103 118 143 97 127 200 27 195 136 138 81 50 58 159 184 170 75 30 94 74],
+                :previous-hash [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0],
+                :block-version 1},
+       :length 285,
        :separator [249 190 180 217]}
       [249 190 180 217 29 1 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 59 163 237 253 122 123 18 178 122 199 44 62 103 118 143 97 127 200 27 195 136 138 81 50 58 159 184 170 75 30 94 74 41 171 95 73 255 255 0 29 29 172 43 124 1 1 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 255 255 255 255 77 4 255 255 0 29 1 4 69 84 104 101 32 84 105 109 101 115 32 48 51 47 74 97 110 47 50 48 48 57 32 67 104 97 110 99 101 108 108 111 114 32 111 110 32 98 114 105 110 107 32 111 102 32 115 101 99 111 110 100 32 98 97 105 108 111 117 116 32 102 111 114 32 98 97 110 107 115 255 255 255 255 1 0 242 5 42 1 0 0 0 67 65 4 103 138 253 176 254 85 72 39 25 103 241 166 113 48 183 16 92 214 168 40 224 57 9 166 121 98 224 234 31 97 222 182 73 246 188 63 76 239 56 196 243 85 4 229 30 193 18 222 92 56 77 247 186 11 141 87 138 76 112 43 107 241 29 95 172 0 0 0 0]]]))
 
