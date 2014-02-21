@@ -176,12 +176,8 @@ writing the data there WILL be a final separator. This means, the written data m
 
 If there is no options, the decoder tries to read continuously until the stream is exhausted.
 Example: To read a sequence of integers with a byte prefix for the length use `(repeated :byte :prefix :int)`"
-  [codec & options]
-  (let [codec (compile-codec codec)
-        options (apply hash-map options)
-        length (options :length)
-        prefix (options :prefix)
-        separator (options :separator)]
+  [codec & {:keys [length prefix separator]}]
+  (let [codec (compile-codec codec)]
     (cond length (reify BinaryIO
                    (read-data  [_ big-in little-in]
                      (read-times length codec big-in little-in))
