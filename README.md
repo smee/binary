@@ -114,6 +114,9 @@ If you use clojure's map literals, the order of the binary values is unspecified
 
 - No parameter means: read until exhaustion of the stream (EOF).
 
+### Blob
+`blob` is essentially an optimized version of `(repeated :byte ...)` that produces and consumes Java byte arrays. It takes the same options as `repeated`, except for `:separator`.
+
 ### String
 
 Reads and writes bytes and converts them from/to strings with a specific string encoding. This codec uses `repeated`, that means it takes either `:length` or `:prefix` as parameter to determine the length of the string.
