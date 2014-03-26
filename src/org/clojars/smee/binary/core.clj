@@ -227,25 +227,25 @@ Options as in `repeated`, except :separator is not supported."
                  (read-data  [_ big-in little-in]
                    (read-bytes big-in length))
                  (write-data [_ big-out little-out bytes]
-                   (if (not= length (alength bytes))
+                   (if (not= length (alength ^"[B" bytes))
                      (throw (java.lang.IllegalArgumentException. (str "This sequence should have length " length " but has really length " (alength bytes))))
-                     (.write big-out bytes))))
+                     (.write ^DataOutput big-out ^"[B" bytes))))
         prefix (let [prefix-codec (compile-codec prefix)]
                  (reify BinaryIO
                    (read-data  [_ big-in little-in]
                      (let [length (read-data prefix-codec big-in little-in)]
                        (read-bytes big-in length)))
                    (write-data [_ big-out little-out bytes]
-                     (let [length (alength bytes)]
+                     (let [length (alength ^"[B" bytes)]
                        (write-data prefix-codec big-out little-out length)
-                       (.write big-out bytes)))))
+                       (.write ^DataOutput big-out ^"[B" bytes)))))
         :else (reify BinaryIO
                 (read-data  [_ big-in little-in]
                   (let [byte-stream (ByteArrayOutputStream.)]
                     (copy big-in byte-stream)
                     (.toByteArray byte-stream)))
                 (write-data [_ big-out little-out bytes]
-                  (.write big-out bytes)))))
+                  (.write ^DataOutput big-out ^"[B" bytes)))))
 
 (defn constant
   "Reads a constant value, ignores given value on write. Can be used as a version tag for a composite codec.
