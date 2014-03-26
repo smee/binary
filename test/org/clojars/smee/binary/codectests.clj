@@ -139,19 +139,19 @@
        (string "UTF-8" :length 5) "X"
        (repeated :int :length 3) [1 2]
        (blob :length 3) (byte-array 2)
-       (padding :int-le 1) (int 1234)
-       (padding :int-le 3) (int 1234)
-       (padding (repeated (string "UTF-8" :separator 0)) 1) ["abc" "def" "ghi"]))
+       (padding :int-le :length 1) (int 1234)
+       (padding :int-le :length 3) (int 1234)
+       (padding (repeated (string "UTF-8" :separator 0)) :length 1) ["abc" "def" "ghi"]))
 
 (deftest paddings
   (test-all-roundtrips
-    [[(padding :int-be 6 (int \x)) (int 55) [0 0 0 55 120 120]]
-     [(padding (string "UTF8" :length 6) 6) "abcdef" [97 98 99 100 101 102]]
-     [(padding (repeated :int-le) 10 0x99) [1 2] [1 0 0 0 2 0 0 0 0x99 0x99]]]))
+    [[(padding :int-be :length 6 :padding-byte (int \x)) (int 55) [0 0 0 55 120 120]]
+     [(padding (string "UTF8" :length 6) :length 6) "abcdef" [97 98 99 100 101 102]]
+     [(padding (repeated :int-le) :length 10 :padding-byte 0x99) [1 2] [1 0 0 0 2 0 0 0 0x99 0x99]]]))
 
 (deftest padding-truncate
   (test-all-roundtrips
-    [[(padding (repeated (string "UTF8" :separator 0)) 11 :truncate? true) ["abc" "def" "ghi"] (s2b "abc\u0000def\u0000ghi")]]))
+    [[(padding (repeated (string "UTF8" :separator 0)) :length 11 :truncate? true) ["abc" "def" "ghi"] (s2b "abc\u0000def\u0000ghi")]]))
 
 (deftest constants
   (test-all-roundtrips
@@ -167,7 +167,7 @@
 (deftest headers
   (test-all-roundtrips
     [[(header :byte #(string "utf8" :length %) #(.length %)) "ABC" [3 65 66 67]]
-     [(header :byte #(padding (repeated :int-le) % 0x99) (constantly 11)) [5 9] [11 5 0 0 0 9 0 0 0 0x99 0x99 0x99]]]))
+     [(header :byte #(padding (repeated :int-le) :length % :padding-byte 0x99) (constantly 11)) [5 9] [11 5 0 0 0 9 0 0 0 0x99 0x99 0x99]]]))
 
 (deftest enums
   (test-all-roundtrips

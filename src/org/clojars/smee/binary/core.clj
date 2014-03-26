@@ -1,6 +1,6 @@
 (ns org.clojars.smee.binary.core
   (:use [clojure.java.io :only (input-stream output-stream copy)])
-  (:import [java.io DataInput DataOutput DataInputStream DataOutputStream InputStream ByteArrayInputStream ByteArrayOutputStream])
+  (:import [java.io DataInput DataOutput InputStream DataInputStream DataOutputStream ByteArrayInputStream ByteArrayOutputStream])
   (:require [clojure.walk :as walk]))
 
 (defprotocol ^:private BinaryIO
@@ -49,8 +49,8 @@
    :int    (primitive-codec .readInt .writeInt int :be)
    :int-le (primitive-codec .readInt .writeInt int :le)
    :int-be (primitive-codec .readInt .writeInt int :be)
-   :uint-le (primitive-codec .readUnsignedInt .writeUnsignedInt long :le)
-   :uint-be (primitive-codec .readUnsignedInt .writeUnsignedInt long :be)
+   :uint-le (primitive-codec .readUnsignedInt .writeInt long :le)
+   :uint-be (primitive-codec .readUnsignedInt .writeInt long :be)
 
    :long    (primitive-codec .readLong .writeLong long :be)
    :long-le (primitive-codec .readLong .writeLong long :le)
@@ -324,47 +324,45 @@ else only the `body` will be returned."
 (defn padding
   "Make sure there is always a minimum byte `length` when reading/writing values.
 Works by reading `length` bytes into a byte array, then reading from that array using `inner-codec`.
-Currently there are two options:
+Currently there are three options:
+- `:length` is the number of bytes that should be present after writing
 - `:padding-byte` is the numeric value of the byte used for padding (default is 0)
 - `:truncate?` is a boolean flag that determines the behaviour if `inner-codec` writes more bytes than
 `padding` can handle: false is the default, meaning throw an exception. True will lead to truncating the
 output of `inner-codec`.
 
 Example:
-    (encode (padding (repeated (string \"UTF8\" :separator 0)) 11 :truncate? true) outstream [\"abc\" \"def\" \"ghi\"])
+    (encode (padding (repeated (string \"UTF8\" :separator 0)) :length 11 :truncate? true) outstream [\"abc\" \"def\" \"ghi\"])
     => ; writes bytes [97 98 99 0 100 101 102 0 103 104 105]
        ; observe: the last separator byte was truncated!"
-  [inner-codec length & options]
-  {:pre [(number? length) (or (empty? options)
-                              (number? (first options))
-                              (even? (count options)))]}
-  (let [inner-codec (compile-codec inner-codec)
-        options (cond
-                  (even? (count options)) (apply hash-map options)
-                  (number? (first options)) {:padding-byte (first options)}
-                  :else (throw (ex-info "unknown options, please use onlye keys `:truncate?` and `:padding-byte`" {:wrong-options options})))
-        {:keys [truncate? padding-byte] :or {padding-byte 0, truncate? false}} options]
-    (reify BinaryIO
-      (read-data  [_ big-in _]
-        (let [bytes (byte-array length)
-              _ (.readFully ^DataInput big-in bytes)
-              in (java.io.ByteArrayInputStream. bytes)
-              big-in (DataInputStream. in)
-              little-in (LittleEndianDataInputStream. in)]
-          (read-data inner-codec big-in little-in)))
-      (write-data [_ big-out _ value]
-        (let [baos (ByteArrayOutputStream. length)
-              big-o (DataOutputStream. baos)
-              little-o (LittleEndianDataOutputStream. baos)
-              _ (write-data inner-codec big-o little-o value)
-              arr (.toByteArray baos)
-              len (if truncate? length (.size baos))
-              padding-bytes-left (max 0 (- length len))]
-          (if (< (- length len) 0)
-            (throw (ex-info (str "Data should be max. " length " bytes, but attempting to write " (Math/abs (- len length)) " bytes more!") {:overflow-bytes (Math/abs (- len length))}))
-            (do
-              (.write ^DataOutputStream big-out arr 0 len)
-              (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-byte)))))))))
+  [inner-codec & {:keys [length 
+                         padding-byte
+                         truncate?] 
+                  :or {padding-byte 0
+                       truncate? false}}]
+  {:pre [(every? number? [padding-byte length])
+         (codec? inner-codec)]}
+  (reify BinaryIO
+    (read-data  [_ big-in _]
+      (let [bytes (byte-array length)
+            _ (.readFully ^DataInput big-in bytes)
+            in (java.io.ByteArrayInputStream. bytes)
+            big-in (DataInputStream. in)
+            little-in (LittleEndianDataInputStream. in)]
+        (read-data inner-codec big-in little-in)))
+    (write-data [_ big-out _ value]
+      (let [baos (ByteArrayOutputStream. length)
+            big-o (DataOutputStream. baos)
+            little-o (LittleEndianDataOutputStream. baos)
+            _ (write-data inner-codec big-o little-o value)
+            arr (.toByteArray baos)
+            len (if truncate? length (.size baos))
+            padding-bytes-left (max 0 (- length len))]
+        (if (< (- length len) 0)
+          (throw (ex-info (str "Data should be max. " length " bytes, but attempting to write " (Math/abs (- len length)) " bytes more!") {:overflow-bytes (Math/abs (- len length))}))
+          (do
+            (.write ^DataOutputStream big-out arr 0 len)
+            (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-byte))))))))
 
 (defn- map-invert [m]
   {:post [(= (count (keys %)) (count (keys m)))]}

@@ -149,19 +149,19 @@ Decodes a header using `header-codec`. Passes this datastructure to `header->bod
 ### Padding
 Make sure there is always a minimum byte `length` when reading/writing values.
 Works by reading `length` bytes into a byte array, then reading from that array using `inner-codec`.
-Currently there are two options:
-- `:padding-byte` is the numeric value of the byte used for padding (default is 0)
-- `:truncate?` is a boolean flag that determines the behaviour if `inner-codec` writes more bytes than
-`padding` can handle: false is the default, meaning throw an exception. True will lead to truncating the
-output of `inner-codec`.
+Currently there are three options:
 
-Examples:
+- `:length` is the number of bytes that should be present after writing
+- `:padding-byte` is the numeric value of the byte used for padding (default is 0)
+- `:truncate?` is a boolean flag that determines the behaviour if `inner-codec` writes more bytes than `padding` can handle: false is the default, meaning throw an exception. True will lead to truncating the output of `inner-codec`.
+
+Example:
 
 ``` clojure
 (padding (repeated :int-le :length 100) 1024 :padding-byte (byte \x))
 => [...] ; sequence of 100 integers, the stream will have 1024 bytes read, though
 
-(encode (padding (repeated (string \"UTF8\" :separator 0)) 11 :truncate? true) outstream [\"abc\" \"def\" \"ghi\"])
+(encode (padding (repeated (string "UTF8" :separator 0)) 11 :truncate? true) outstream ["abc" "def" "ghi"])
 => ; writes bytes [97 98 99 0 100 101 102 0 103 104 105]
    ; observe: the last separator byte was truncated!
 ```

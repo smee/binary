@@ -3,8 +3,8 @@
   :url "http://github.com/smee/binary"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :dependencies []
   :java-source-paths ["java-src"]
   :profiles {:dev 
-             {:dependencies [[org.clojure/clojure "1.5.1"]
-                             [io.aviso/pretty "0.1.5"]]}}
-  :dependencies [])
+             {:dependencies [[org.clojure/clojure "1.6.0"]
+                             [io.aviso/pretty "0.1.5"]]}})
