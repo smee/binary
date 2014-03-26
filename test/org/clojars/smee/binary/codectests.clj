@@ -28,7 +28,7 @@
     (is (= (class decoded) (class value)))
     (is (= decoded value))
     (when expected-bytes
-      (is (= encoded-bytes expected-bytes)))))
+      (is (= encoded-bytes (map byte->ubyte expected-bytes))))))
 
 (defn- test-all-roundtrips [test-cases]
   (doseq [[codec value bytes] test-cases]
@@ -37,7 +37,10 @@
 
 (deftest primitive-encodings
   (test-all-roundtrips
-    [[:short-be (short 5) [0 5]]
+    [[:byte (byte 55) [55]]
+     [:byte (ubyte->byte 200) [-56]]
+     [:ubyte (ubyte->byte 200) [200]]
+     [:short-be (short 5) [0 5]]
      [:short-le (short 5) [5 0]]
      [:int-be (int 127) [0 0 0 127]]
      [:int-le (int 127) [127 0 0 0]]

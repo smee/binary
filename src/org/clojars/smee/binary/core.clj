@@ -299,20 +299,27 @@ Flag names `null` are ignored. Bit count will be padded up to the next multiple 
 (defn header
   "Decodes a header using `header-codec`. Passes this datastructure to `header->body` which returns the codec to
 use to parse the body. For writing this codec calls `body->header` with the data as parameter and
-expects a value to use for writing the header information."
-  [header-codec header->body-codec body->header]
+expects a value to use for writing the header information.
+If the optional flag `:keep-header` is set, read will return a vector of `[header body]`
+else only the `body` will be returned."
+  [header-codec header->body-codec body->header & {:keys [keep-header?] :or {keep-header? false}}]
   (let [header-codec (compile-codec header-codec)]
     (reify BinaryIO
       (read-data  [_ big-in little-in]
         (let [header (read-data header-codec big-in little-in)
               body-codec (header->body-codec header)
               body (read-data body-codec big-in little-in)]
-          body))
+          (if keep-header? 
+            {:header header 
+             :body body}
+            body)))
       (write-data [_ big-out little-out value]
-        (let [header (body->header value)
+        (let [body (if keep-header? (:body value) value)
+              header (if keep-header? (:header value) (body->header body))
               body-codec (header->body-codec header)]
           (write-data header-codec big-out little-out header)
           (write-data body-codec big-out little-out value))))))
+
 
 (defn padding
   "Make sure there is always a minimum byte `length` when reading/writing values.
