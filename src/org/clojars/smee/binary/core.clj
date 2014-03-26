@@ -210,10 +210,14 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
                     (doseq [value values]
                       (write-data codec big-out little-out value)))))))
 
-(defn- read-bytes [in len]
+(defn- read-bytes [^DataInput in len]
   (let [bytes (byte-array len)]
-    (while (not (neg? (.read in bytes))))
-    bytes))
+    (loop [n 0]
+      (if (= len n) 
+        bytes
+        (do 
+          (.readFully in bytes n 1)
+          (recur (inc n)))))))
 
 (defn blob
   "Reads a chunk of binary data as a Java byte array.

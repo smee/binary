@@ -10,16 +10,23 @@
 (defn- byte-array? [value]
   (= (Class/forName "[B") (class value)))
 
+(defonce array-classes (set (map #(class (% 0)) 
+                                 [byte-array int-array long-array short-array float-array double-array boolean-array object-array])))
+
 (defn- test-roundtrip [codec value expected-bytes]
   (let [baos (java.io.ByteArrayOutputStream.)
         _ (encode codec baos value)
         arr (.toByteArray baos)
         encoded-bytes (map byte->ubyte (seq arr))
         decoded (decode codec (java.io.ByteArrayInputStream. arr))
-        equals (if (byte-array? value) #(java.util.Arrays/equals %1 %2) =)]
+        replace-arrays #(if (array-classes (class %))
+                          (vec %) 
+                          %)
+        value (clojure.walk/postwalk replace-arrays value)
+        decoded (clojure.walk/postwalk replace-arrays decoded)]
 ;    (println codec value expected-bytes decoded (java.lang.Long/toBinaryString decoded)) (doseq [b encoded-bytes] (print (java.lang.Integer/toHexString b) " ")) (println)
     (is (= (class decoded) (class value)))
-    (is (equals decoded value))
+    (is (= decoded value))
     (when expected-bytes
       (is (= encoded-bytes expected-bytes)))))
 
@@ -119,9 +126,10 @@
 (deftest mixed-encodings
   (test-all-roundtrips
     [[(ordered-map :foo [:byte :byte]
+                   :baz (blob :length 4)
                    :bar (string "UTF8" :prefix :int-be))
-      {:foo [1 2], :bar "test"}
-      [1 2 0 0 0 4 116 101 115 116]]]))
+      {:foo [1 2], :bar "test", :baz (byte-array 4 (byte 55))}
+      [1 2 55 55 55 55 0 0 0 4 116 101 115 116]]]))
 
 (deftest wrong-length
   (are [codec values] (is (thrown? java.lang.RuntimeException (encode codec (NullOutputStream.) values)))
