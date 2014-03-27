@@ -1,24 +1,25 @@
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 
 import clojure.lang.BigInt;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Not threadsafe!
  * @author sdienst
  *
  */
-public class LittleEndianDataInputStream extends InputStream implements UnsignedDataInput {
+public class LittleEndianDataInputStream extends FilterInputStream implements UnsignedDataInput {
 
-	private final DataInputStream d;
+	private final CountingInputStream d;
 	private final byte w[]; // work array for buffering input
 	
-	public LittleEndianDataInputStream(InputStream in) {
-		this.d = new DataInputStream(in);
+	public LittleEndianDataInputStream(CountingInputStream in) {
+		super(in);
+		this.d = in;//new DataInputStream(in);
 		w = new byte[9];
 	}
 	@Override
@@ -84,7 +85,7 @@ public class LittleEndianDataInputStream extends InputStream implements Unsigned
 	 }
 	@Override
 	public BigInt readUnsignedLong() throws IOException {
-		d.readFully(w,1,8);
+		this.readFully(w,1,8);
 		boolean isMax=false;
 		// reverse byte array
 		for (int i = 1; i < 5; i++) {
@@ -110,23 +111,29 @@ public class LittleEndianDataInputStream extends InputStream implements Unsigned
 	 }
 	@Override
 	 public final void readFully(byte b[]) throws IOException {
-		 d.readFully(b, 0, b.length);
+		 this.readFully(b, 0, b.length);
 	 }
 	@Override
 	 public final void readFully(byte b[], int off, int len) throws IOException {
-		 d.readFully(b, off, len);
+		 int l = d.read(b, off, len);
+		 if(l<len)
+			 throw new EOFException();
 	 }
 	@Override
 	 public final int skipBytes(int n) throws IOException {
-		 return d.skipBytes(n);
+		 return (int) d.skip(n);
 	 }
 	@Override
 	 public final boolean readBoolean() throws IOException {
-		 return d.readBoolean();
+        int ch = in.read();
+        if (ch < 0)
+            throw new EOFException();
+        boolean b = (ch != 0);
+        return b;
 	 }
 	@Override
 	 public final byte readByte() throws IOException {
-		 return d.readByte();
+		 return (byte) d.read();
 	 }
 	@Override
 	 public final int read() throws IOException {
@@ -134,7 +141,10 @@ public class LittleEndianDataInputStream extends InputStream implements Unsigned
 	 }
 
 	 public final int readUnsignedByte() throws IOException {
-		 return d.readUnsignedByte();
+	    int b = in.read();
+	    if (b < 0)
+	    	throw new EOFException();
+		 return b;
 	 }
 	 
 	 @Override
@@ -148,8 +158,15 @@ public class LittleEndianDataInputStream extends InputStream implements Unsigned
 	 }
 	 @Override
 	 public final void close() throws IOException {
-		 this.close();
+		 d.close();
 	 }
+	/**
+	 * @return number of bytes already read from the delegated inputstream
+	 */
+	 @Override
+	public final long size() {
+		return d.size();
+	}
 
 }
 

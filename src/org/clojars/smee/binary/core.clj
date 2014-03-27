@@ -355,12 +355,12 @@ Example:
       (let [bytes (byte-array length)
             _ (.readFully ^DataInput big-in bytes)
             in (java.io.ByteArrayInputStream. bytes)
-            big-in (DataInputStream. in)
-            little-in (LittleEndianDataInputStream. in)]
+            big-in (BigEndianDataInputStream. (CountingInputStream. in))
+            little-in (LittleEndianDataInputStream. (CountingInputStream. in))]
         (read-data inner-codec big-in little-in)))
     (write-data [_ big-out _ value]
       (let [baos (ByteArrayOutputStream. length)
-            big-o (DataOutputStream. baos)
+            big-o (BigEndianDataOutputStream. baos)
             little-o (LittleEndianDataOutputStream. baos)
             _ (write-data inner-codec big-o little-o value)
             arr (.toByteArray baos)
@@ -371,6 +371,45 @@ Example:
           (do
             (.write ^DataOutputStream big-out arr 0 len)
             (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-byte))))))))
+
+(defn align
+  "This codec is related to `padding` in that it makes sure that the number of bytes
+written/read to/from a stream always is aligned to a specified byte boundary.
+For example, if a format requires aligning all data to 8 byte boundaries this codec
+will pad the written data with `padding-byte` to make sure that the count of bytes written
+is divisable by 8.
+
+Parameters:
+- `modulo`: byte boundary modulo, should be positive
+- `:padding-byte` is the numeric value of the byte used for padding (default is 0)
+
+Example:
+    (encode (align (repeated :short-be :length 3) :modulo 9 :padding-byte 55) [1 2 3] output-stream)
+    ;==> writes these bytes: [0 1 0 2 0 3 55 55 55]"  
+  [inner-codec & {:keys [modulo 
+                         padding-byte] 
+                  :or {padding-byte 0
+                       modulo 1}}]
+  {:pre [(number? modulo)
+         (number? padding-byte)
+         (pos? modulo) 
+         (codec? inner-codec)]}
+  (reify BinaryIO
+    (read-data  [_ b l] 
+      (let [^UnsignedDataInput b b
+            ^UnsignedDataInput l l
+            data (read-data inner-codec b l)
+            size (+ (.size b) (.size l))
+            padding-bytes-left (mod (- modulo (mod size modulo)) modulo)]
+        (dotimes [_ padding-bytes-left] (.readByte b))
+        data))
+    (write-data [_ big-out little-out value]
+      (let [^UnsignedDataOutput b big-out
+            ^UnsignedDataOutput l little-out
+            _ (write-data inner-codec b little-out value)
+            size (+ (.size b) (.size l))
+            padding-bytes-left (mod (- modulo (mod size modulo)) modulo)]
+        (dotimes [_ padding-bytes-left] (.writeByte b padding-byte))))))
 
 (defn- map-invert [m]
   {:post [(= (count (keys %)) (count (keys m)))]}
@@ -439,6 +478,6 @@ Only names and values in `m` will be accepted when encoding or decoding."
 (defn decode
   "Deserialize a value from the InputStream `in` according to the codec."
   [codec in]
-  (let [big-in (BigEndianDataInputStream. in)
-        little-in (LittleEndianDataInputStream. in)]
+  (let [big-in (BigEndianDataInputStream. (CountingInputStream. in))
+        little-in (LittleEndianDataInputStream. (CountingInputStream. in))]
     (read-data codec big-in little-in)))

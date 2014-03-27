@@ -8,5 +8,5 @@ public interface UnsignedDataInput extends DataInput {
 	long readUnsignedInt() throws IOException;
 	int readUnsignedShort() throws IOException;
 	BigInt readUnsignedLong() throws IOException;
-
+	long size();
 }

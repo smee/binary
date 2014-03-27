@@ -6,8 +6,11 @@ import clojure.lang.BigInt;
 
 public class LittleEndianDataOutputStream extends FilterOutputStream implements UnsignedDataOutput{
 
+	private int count;
+
 	public LittleEndianDataOutputStream(OutputStream out) {
 		super(out);
+		count = 0;
 	}
 
 	@Override
@@ -16,28 +19,32 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 			this.write(1);
 		else
 			this.write(0);
+		count++;
 	}
 
 	@Override
 	public final void writeByte(int b) throws IOException {
 		out.write(b);
+		count++;
 	}
 
 	@Override
 	public final void writeShort(int s) throws IOException {
 		out.write(s & 0xFF);
 		out.write((s >>> 8) & 0xFF);
+		count+=2;
 	}
 	@Override
 	public final void writeUnsignedShort(int s) throws IOException {
 		out.write((s >>> 0) & 0xFF);
         out.write((s >>> 8) & 0xFF);
-		
+        count+=2;
 	}
 	@Override
 	public final void writeChar(int c) throws IOException {
 		out.write(c & 0xFF);
 		out.write((c >>> 8) & 0xFF);
+		count+=2;
 	}
 
 	@Override
@@ -46,7 +53,7 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 		out.write((i >>> 8) & 0xFF);
 		out.write((i >>> 16) & 0xFF);
 		out.write((i >>> 24) & 0xFF);
-
+		count+=4;
 	}
 	@Override
 	public final void writeUnsignedInt(long i) throws IOException {
@@ -54,7 +61,7 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 		out.write((int) ((i >>> 8) & 0xFF));
 		out.write((int) ((i >>> 16) & 0xFF));
 		out.write((int) ((i >>> 24) & 0xFF));
-
+		count+=4;
 	}
 	
 	@Override
@@ -67,6 +74,7 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 		out.write((int) (l >>> 40) & 0xFF);
 		out.write((int) (l >>> 48) & 0xFF);
 		out.write((int) (l >>> 56) & 0xFF);
+		count+=8;
 	}
 	@Override
 	public void writeUnsignedLong(BigInt bi) throws IOException {
@@ -89,37 +97,41 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 			toWrite[7-i] = b;
 		}
 		out.write(toWrite,0,8);
+		count+=8;
 	}
 
 	@Override
 	public final void writeFloat(float f) throws IOException {
 		this.writeInt(Float.floatToIntBits(f));
+		count+=4;
 	}
 
 	public final void writeDouble(double d) throws IOException {
 		this.writeLong(Double.doubleToLongBits(d));
+		count+=8;
 	}
 
 	public void writeBytes(String s) throws IOException {
-		int length = s.length();
-		for (int i = 0; i < length; i++) {
-			out.write((byte) s.charAt(i));
-		}
+		throw new RuntimeException("unimplemented");
 	}
 
 	public final void writeChars(String s) throws IOException {
-
-		int length = s.length();
-		for (int i = 0; i < length; i++) {
-			int c = s.charAt(i);
-			out.write(c & 0xFF);
-			out.write((c >>> 8) & 0xFF);
-		}
-
+		throw new RuntimeException("unimplemented");
 	}
 	@Override
 	public final void writeUTF(String s) throws IOException {
 		throw new RuntimeException("unimplemented");
+	}
+
+	@Override
+	public int size() {
+		return count;
+	}
+
+	@Override
+	public void write(int b) throws IOException {
+		super.write(b);
+		count++;
 	}
 
 }

@@ -177,6 +177,24 @@ Example:
    ; observe: the last separator byte was truncated!
 ```
 
+### Align
+This codec is related to `padding` in that it makes sure that the number of bytes
+written/read to/from a stream always is aligned to a specified byte boundary.
+For example, if a format requires aligning all data to 8 byte boundaries this codec
+will pad the written data with `padding-byte` to make sure that the count of bytes written
+is divisable by 8.
+
+Parameters:
+
+- `modulo`: byte boundary modulo, should be positive
+- `:padding-byte` is the numeric value of the byte used for padding (default is 0)
+
+Example:
+
+``` clojure
+(encode (align (repeated :short-be :length 3) :modulo 9 :padding-byte 55) [1 2 3] output-stream)
+;==> writes these bytes: [0 1 0 2 0 3 55 55 55]
+```
 
 ### Constant
 If a binary format uses fixed elements (like the three bytes 'ID3' in mp3), you can use this codec. It needs a codec and a fixed value. If the value read using this codec does not match the given fixed value, an exception will be thrown.

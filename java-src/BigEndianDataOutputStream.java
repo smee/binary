@@ -13,16 +13,16 @@ public class BigEndianDataOutputStream extends DataOutputStream implements Unsig
 
 	@Override
 	public void writeUnsignedInt(long i) throws IOException {
-		out.write((int) ((i >>> 24) & 0xFF));
-        out.write((int) ((i >>> 16) & 0xFF));
-        out.write((int) ((i >>>  8) & 0xFF));
-        out.write((int) ((i >>>  0) & 0xFF));
+		write((int) ((i >>> 24) & 0xFF));
+        write((int) ((i >>> 16) & 0xFF));
+        write((int) ((i >>>  8) & 0xFF));
+        write((int) ((i >>>  0) & 0xFF));
 	}
 
 	@Override
 	public void writeUnsignedShort(int v) throws IOException {
-        out.write((v >>> 8) & 0xFF);
-        out.write((v >>> 0) & 0xFF);
+        write((v >>> 8) & 0xFF);
+        write((v >>> 0) & 0xFF);
 	}
 
 	@Override
@@ -36,7 +36,7 @@ public class BigEndianDataOutputStream extends DataOutputStream implements Unsig
 		int len = isLongerThanLong?8:arrayLength;
 		byte[] toWrite = new byte[8];
 		System.arraycopy(arr, offset, toWrite, 8-len, len);
-		out.write(toWrite,0,8);		
+		write(toWrite,0,8);		
 	}
 
 }

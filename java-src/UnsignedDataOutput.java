@@ -8,4 +8,5 @@ public interface UnsignedDataOutput extends DataOutput{
 	void writeUnsignedShort(int i) throws IOException;
 	void writeUnsignedInt(long i) throws IOException;
 	void writeUnsignedLong(BigInt i) throws IOException;
+	int size();
 }

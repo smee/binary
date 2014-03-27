@@ -17,7 +17,7 @@
   (let [baos (java.io.ByteArrayOutputStream.)
         _ (encode codec baos value)
         arr (.toByteArray baos)
-        encoded-bytes (map byte->ubyte (seq arr))
+        encoded-bytes (mapv byte->ubyte (seq arr))
         decoded (decode codec (java.io.ByteArrayInputStream. arr))
         replace-arrays #(if (array-classes (class %))
                           (vec %) 
@@ -32,7 +32,7 @@
       (println))
     (is (= decoded value))
     (when expected-bytes
-      (is (= encoded-bytes (map byte->ubyte expected-bytes))))))
+      (is (= encoded-bytes (mapv byte->ubyte expected-bytes))))))
 
 (defn- test-all-roundtrips [test-cases]
   (doseq [[codec value bytes] test-cases]
@@ -174,6 +174,12 @@
 (deftest padding-truncate
   (test-all-roundtrips
     [[(padding (repeated (string "UTF8" :separator 0)) :length 11 :truncate? true) ["abc" "def" "ghi"] (s2b "abc\u0000def\u0000ghi")]]))
+
+(deftest test-alignment
+  (test-all-roundtrips
+    [[(align :int-be :modulo 8 :padding-byte 1) 5 [0 0 0 5 1 1 1 1]]
+     [(align (repeated :short-be :length 3) :modulo 9 :padding-byte 55) [1 2 3] [0 1 0 2 0 3 55 55 55]]
+     [(align [:short-le :short-be] :modulo 6) [1 5] [1 0 0 5 0 0]]]))
 
 (deftest constants
   (test-all-roundtrips
