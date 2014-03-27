@@ -1,7 +1,8 @@
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UTFDataFormatException;
+
+import clojure.lang.BigInt;
 
 public class LittleEndianDataOutputStream extends FilterOutputStream implements UnsignedDataOutput{
 
@@ -9,42 +10,55 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 		super(out);
 	}
 
-	public void writeBoolean(boolean b) throws IOException {
+	@Override
+	public final void writeBoolean(boolean b) throws IOException {
 		if (b)
 			this.write(1);
 		else
 			this.write(0);
 	}
 
-	public void writeByte(int b) throws IOException {
+	@Override
+	public final void writeByte(int b) throws IOException {
 		out.write(b);
 	}
 
-	public void writeShort(int s) throws IOException {
+	@Override
+	public final void writeShort(int s) throws IOException {
 		out.write(s & 0xFF);
 		out.write((s >>> 8) & 0xFF);
 	}
-
-	public void writeChar(int c) throws IOException {
+	@Override
+	public final void writeUnsignedShort(int s) throws IOException {
+		out.write((s >>> 0) & 0xFF);
+        out.write((s >>> 8) & 0xFF);
+		
+	}
+	@Override
+	public final void writeChar(int c) throws IOException {
 		out.write(c & 0xFF);
 		out.write((c >>> 8) & 0xFF);
 	}
 
-	public void writeInt(int i) throws IOException {
+	@Override
+	public final void writeInt(int i) throws IOException {
 		out.write(i & 0xFF);
 		out.write((i >>> 8) & 0xFF);
 		out.write((i >>> 16) & 0xFF);
 		out.write((i >>> 24) & 0xFF);
 
 	}
-	public void writeUnsignedInt(long i) throws IOException {
+	@Override
+	public final void writeUnsignedInt(long i) throws IOException {
 		out.write((int) (i & 0xFF));
 		out.write((int) ((i >>> 8) & 0xFF));
 		out.write((int) ((i >>> 16) & 0xFF));
 		out.write((int) ((i >>> 24) & 0xFF));
 
 	}
-	public void writeLong(long l) throws IOException {
+	
+	@Override
+	public final void writeLong(long l) throws IOException {
 		out.write((int) l & 0xFF);
 		out.write((int) (l >>> 8) & 0xFF);
 		out.write((int) (l >>> 16) & 0xFF);
@@ -54,7 +68,30 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 		out.write((int) (l >>> 48) & 0xFF);
 		out.write((int) (l >>> 56) & 0xFF);
 	}
+	@Override
+	public void writeUnsignedLong(BigInt bi) throws IOException {
+		byte[] toWrite = new byte[8];
+		byte[] w = bi.toBigInteger().toByteArray();
+		
+		int arrayLength = w.length;
+		boolean isLongerThanLong = arrayLength>8;
+		if(isLongerThanLong && w[0]>1)
+			throw new ArithmeticException("unsigned long is too big! Would truncate on write!");
+		
+		int offset = isLongerThanLong?1:0;
+		int len = isLongerThanLong?8:arrayLength;
+		System.arraycopy(w, offset, toWrite, 8-len, len);
 
+		// reverse bytes
+		for (int i = 0; i < 4; i++) {
+			byte b = toWrite[i];
+			toWrite[i]=toWrite[7-i];
+			toWrite[7-i] = b;
+		}
+		out.write(toWrite,0,8);
+	}
+
+	@Override
 	public final void writeFloat(float f) throws IOException {
 		this.writeInt(Float.floatToIntBits(f));
 	}
@@ -70,7 +107,7 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 		}
 	}
 
-	public void writeChars(String s) throws IOException {
+	public final void writeChars(String s) throws IOException {
 
 		int length = s.length();
 		for (int i = 0; i < length; i++) {
@@ -80,40 +117,9 @@ public class LittleEndianDataOutputStream extends FilterOutputStream implements 
 		}
 
 	}
-
-	public void writeUTF(String s) throws IOException {
-		int numchars = s.length();
-		int numbytes = 0;
-
-		for (int i = 0; i < numchars; i++) {
-			int c = s.charAt(i);
-			if ((c >= 0x0001) && (c <= 0x007F))
-				numbytes++;
-			else if (c > 0x07FF)
-				numbytes += 3;
-			else
-				numbytes += 2;
-		}
-		if (numbytes > 65535)
-			throw new UTFDataFormatException();
-
-		out.write((numbytes >>> 8) & 0xFF);
-		out.write(numbytes & 0xFF);
-		for (int i = 0; i < numchars; i++) {
-			int c = s.charAt(i);
-			if ((c >= 0x0001) && (c <= 0x007F)) {
-				out.write(c);
-			} else if (c > 0x07FF) {
-				out.write(0xE0 | ((c >> 12) & 0x0F));
-				out.write(0x80 | ((c >> 6) & 0x3F));
-				out.write(0x80 | (c & 0x3F));
-
-			} else {
-				out.write(0xC0 | ((c >> 6) & 0x1F));
-				out.write(0x80 | (c & 0x3F));
-			}
-		}
-
+	@Override
+	public final void writeUTF(String s) throws IOException {
+		throw new RuntimeException("unimplemented");
 	}
 
 }

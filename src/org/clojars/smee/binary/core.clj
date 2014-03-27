@@ -45,16 +45,24 @@
    :short    (primitive-codec .readShort .writeShort short :be)
    :short-le (primitive-codec .readShort .writeShort short :le)
    :short-be (primitive-codec .readShort .writeShort short :be)
+   
+   :ushort    (primitive-codec .readUnsignedShort .writeUnsignedShort int :be)
+   :ushort-le (primitive-codec .readUnsignedShort .writeUnsignedShort int :le)
+   :ushort-be (primitive-codec .readUnsignedShort .writeUnsignedShort int :be)
 
    :int    (primitive-codec .readInt .writeInt int :be)
    :int-le (primitive-codec .readInt .writeInt int :le)
    :int-be (primitive-codec .readInt .writeInt int :be)
+   :uint    (primitive-codec .readUnsignedInt .writeInt long :be)
    :uint-le (primitive-codec .readUnsignedInt .writeInt long :le)
    :uint-be (primitive-codec .readUnsignedInt .writeInt long :be)
 
    :long    (primitive-codec .readLong .writeLong long :be)
    :long-le (primitive-codec .readLong .writeLong long :le)
    :long-be (primitive-codec .readLong .writeLong long :be)
+   :ulong    (primitive-codec .readUnsignedLong .writeUnsignedLong identity :be)
+   :ulong-le (primitive-codec .readUnsignedLong .writeUnsignedLong identity :le)
+   :ulong-be (primitive-codec .readUnsignedLong .writeUnsignedLong identity :be)
 
    :float    (primitive-codec .readFloat .writeFloat float :be)
    :float-le (primitive-codec .readFloat .writeFloat float :le)

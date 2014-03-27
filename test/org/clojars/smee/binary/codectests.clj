@@ -24,8 +24,12 @@
                           %)
         value (clojure.walk/postwalk replace-arrays value)
         decoded (clojure.walk/postwalk replace-arrays decoded)]
-;    (println codec value expected-bytes decoded (java.lang.Long/toBinaryString decoded)) (doseq [b encoded-bytes] (print (java.lang.Integer/toHexString b) " ")) (println)
-    (is (= (class decoded) (class value)))
+    #_(do
+      (println codec value expected-bytes decoded 
+               (java.lang.Long/toBinaryString decoded)) 
+      (doseq [b encoded-bytes] 
+        (print (java.lang.Integer/toHexString b) " ")) 
+      (println))
     (is (= decoded value))
     (when expected-bytes
       (is (= encoded-bytes (map byte->ubyte expected-bytes))))))
@@ -35,25 +39,43 @@
     (is (codec? codec))
     (test-roundtrip codec value bytes)))
 
-(deftest primitive-encodings
+(deftest signed-primitive-encodings
   (test-all-roundtrips
     [[:byte (byte 55) [55]]
-     [:byte (ubyte->byte 200) [-56]]
-     [:ubyte (ubyte->byte 200) [200]]
+     [:byte (byte -56) [-56]]
      [:short-be (short 5) [0 5]]
      [:short-le (short 5) [5 0]]
      [:int-be (int 127) [0 0 0 127]]
      [:int-le (int 127) [127 0 0 0]]
-     [:uint-le (long 255) [255 0 0 0]]
-     [:uint-be (long 255) [0 0 0 255]]
      [:long-be (long 31) [0 0 0 0 0 0 0 31]]
      [:long-le (long 31) [31 0 0 0 0 0 0 0]]
      [:float-le (float 123.45) [0x66 0xe6 0xf6 0x42]]
      [:float-be (float 123.45) [0x42 0xf6 0xe6 0x66]]
      [:double-be (double 123.45) [64 94 220 204 204 204 204 205]]
      [:double-le (double 123.45) [205 204 204 204 204 220 94 64]]
-     [(compile-codec :int-be dec inc) 1 [0 0 0 0]] ; test pre-encode and post-decode
      ]))
+
+(deftest unsigned-primitive-encodings
+  (test-all-roundtrips
+    [[:ubyte 200 [200]]
+     [:ushort-be (int 50000) [195 80]]
+     [:ushort-le (int 50000) [80 195]]
+     [:uint-le (long 255) [255 0 0 0]]
+     [:uint-be (long 255) [0 0 0 255]]
+     [:ulong-le 1N [1 0 0 0 0 0 0 0]] 
+     [:ulong-le 1024N [0 4 0 0 0 0 0 0]] 
+     [:ulong-le 18446744073709551614N [0xfe 0xff 0xff 0xff 0xff 0xff 0xff 0xff]]
+     [:ulong-le 18446744073709551615N [0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff]]
+     [:ulong-be 1N [0 0 0 0 0 0 0 1]]
+     [:ulong-be 1024N [0 0 0 0 0 0 4 0]]
+     [:ulong-be 18446744073709551614N [0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xfe]]
+     [:ulong-be 18446744073709551615N [0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff]]
+     ]))
+
+(deftest pre-post-processing
+  (test-all-roundtrips
+    [[(compile-codec :int-be dec inc) 1 [0 0 0 0]] ; test pre-encode and post-decode
+     [(compile-codec :long-be #(.getTime %) #(java.util.Date. %)) #inst "1999-12-31T23:59:59" [0 0 0 220 106 207 168 24]]]))
 
 (deftest string-encodings
   (test-all-roundtrips
