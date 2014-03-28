@@ -220,12 +220,8 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
 
 (defn- read-bytes [^DataInput in len]
   (let [bytes (byte-array len)]
-    (loop [n 0]
-      (if (= len n) 
-        bytes
-        (do 
-          (.readFully in bytes n 1)
-          (recur (inc n)))))))
+    (.readFully in bytes 0 len)
+    bytes))
 
 (defn blob
   "Reads a chunk of binary data as a Java byte array.
