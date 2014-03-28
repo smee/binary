@@ -1,4 +1,4 @@
-(defproject org.clojars.smee/binary "0.2.6-SNAPSHOT"
+(defproject org.clojars.smee/binary "0.3.0-SNAPSHOT"
   :description "DSL for binary I/O using java's stream apis."
   :url "http://github.com/smee/binary"
   :license {:name "Eclipse Public License"
