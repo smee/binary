@@ -203,8 +203,20 @@ If a binary format uses fixed elements (like the three bytes 'ID3' in mp3), you 
 (constant (string "ISO-8859-1" :length 3) "ID3")
 ```
 
-More documentation is currently in the pipeline...
+### Union
+Union is a C-style union. A fixed number of bytes may represent different values depending on the interpretation of the bytes. The value returned by `read-data` is a map of all valid interpretations according to the specified unioned codecs.
+Parameter is the number of bytes needed for the longest codec in this union and a map of value names to codecs.
+This codec will read the specified number of bytes from the input streams and then successively try to read from this byte array using each individual codec.
 
+Example: Four bytes may represent an integer, two shorts, four bytes, a list of bytes with prefix or a string.
+
+``` clojure
+(union 4 {:integer :int-be 
+          :shorts (repeated :short-be :length 2)
+          :bytes (repeated :byte :length 4)
+          :prefixed (repeated :byte :prefix :byte)
+          :str (string \"UTF8\" :prefix :byte)})
+```
 ## License
 
 Copyright © 2014 Steffen Dienst

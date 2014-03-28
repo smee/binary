@@ -407,6 +407,43 @@ Example:
             padding-bytes-left (mod (- modulo (mod size modulo)) modulo)]
         (dotimes [_ padding-bytes-left] (.writeByte b padding-byte))))))
 
+
+(defn union 
+  "Union is a C-style union. A fixed number of bytes may represent different values depending on the
+interpretation of the bytes. The value returned by `read-data` is a map of all valid interpretations according to
+the specified unioned codecs.
+Parameter is the number of bytes needed for the longest codec in this union and a map of value names to codecs.
+This codec will read the specified number of bytes from the input streams and then successively try to read 
+from this byte array using each individual codec.
+
+Example: Four bytes may represent an integer, two shorts, four bytes, a list of bytes with prefix or a string.
+
+    (union 4 {:integer :int-be 
+              :shorts (repeated :short-be :length 2)
+              :bytes (repeated :byte :length 4)
+              :prefixed (repeated :byte :prefix :byte)
+              :str (string \"UTF8\" :prefix :byte)})"
+  [bytes-length codecs-map]
+  (padding 
+    (reify BinaryIO
+      (read-data  [_ big-in little-in]
+        (let [arr (byte-array bytes-length)
+              _ (.readFully ^UnsignedDataInput big-in arr)
+              bais (ByteArrayInputStream. arr)
+              os-b (BigEndianDataInputStream. (CountingInputStream. bais))
+              os-l (LittleEndianDataInputStream. (CountingInputStream. bais))
+              vals (doall (for [[n codec] codecs-map]
+                            (do (.reset bais) 
+                              [n (read-data codec os-b os-l)])))]
+          (into {} vals)))
+      (write-data [_ big-out little-out value]
+        (let [k (some (fn [[k v]] (when v k)) value)
+              codec (codecs-map k)]
+          (if (not codec)
+            (throw (ex-info (str "No known codec for value with key " k) {:value value :unknown-key k :codecs codecs-map}))
+            (write-data codec big-out little-out (get value k))))))
+    :length bytes-length))
+
 (defn- map-invert [m]
   {:post [(= (count (keys %)) (count (keys m)))]}
   (into {} (for [[k v] m] [v k])))
@@ -417,7 +454,7 @@ Example:
 (defn enum [codec m]
   "An enumerated value. `m` must be a 1-to-1 mapping of names (e.g. keywords) to their decoded values.
 Only names and values in `m` will be accepted when encoding or decoding."
-  (compile-codec codec
+    (compile-codec codec
     (strict-map m)
     (strict-map (map-invert m))))
 

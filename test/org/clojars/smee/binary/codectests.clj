@@ -13,26 +13,35 @@
 (defonce array-classes (set (map #(class (% 0)) 
                                  [byte-array int-array long-array short-array float-array double-array boolean-array object-array])))
 
-(defn- test-roundtrip [codec value expected-bytes]
+(defn- do-roundtrip [codec value]
   (let [baos (java.io.ByteArrayOutputStream.)
         _ (encode codec baos value)
         arr (.toByteArray baos)
         encoded-bytes (mapv byte->ubyte (seq arr))
-        decoded (decode codec (java.io.ByteArrayInputStream. arr))
-        replace-arrays #(if (array-classes (class %))
-                          (vec %) 
-                          %)
-        value (clojure.walk/postwalk replace-arrays value)
-        decoded (clojure.walk/postwalk replace-arrays decoded)]
+        decoded (decode codec (java.io.ByteArrayInputStream. arr))]
     #_(do
       (println codec value expected-bytes decoded 
                (java.lang.Long/toBinaryString decoded)) 
       (doseq [b encoded-bytes] 
         (print (java.lang.Integer/toHexString b) " ")) 
       (println))
+    {:encoded encoded-bytes
+     :value value
+     :decoded decoded}))
+
+(defn- replace-arrays [v] 
+  (if (array-classes (class v))
+    (vec v) 
+    v))
+
+(defn- test-roundtrip [codec value expected-bytes]
+  (let [{:keys [decoded value encoded]} (do-roundtrip codec value)
+        value (clojure.walk/postwalk replace-arrays value)
+        decoded (clojure.walk/postwalk replace-arrays decoded)
+        ]
     (is (= decoded value))
     (when expected-bytes
-      (is (= encoded-bytes (mapv byte->ubyte expected-bytes))))))
+      (is (= encoded (mapv byte->ubyte expected-bytes))))))
 
 (defn- test-all-roundtrips [test-cases]
   (doseq [[codec value bytes] test-cases]
@@ -240,3 +249,21 @@
   (test-all-roundtrips
     [[pb/proto-key [150 0] [8]]
      [pb/proto-delimited "testing" [0x12 0x07 0x74 0x65 0x73 0x74 0x69 0x6e 0x67]]]))
+
+(deftest test-unions
+  (let [codec (union 4 {:integer :int-be 
+                        :shorts (repeated :short-be :length 2)
+                        :bytes (repeated :byte :length 4)
+                        :prefixed (repeated :byte :prefix :byte)
+                        :str (string "UTF8" :prefix :byte)})
+        result {:integer 0x03345678
+                :shorts [0x0334 0x5678]
+                :bytes [0x03 0x34 0x56 0x78]
+                :prefixed [0x34 0x56 0x78]
+                :str "4Vx"}] 
+    (are [value] (= result (:decoded (do-roundtrip codec value)))
+       {:integer 0x03345678}
+       {:shorts [0x0334 0x5678]}
+       {:bytes [0x03 0x34 0x56 0x78]}
+       {:prefixed [0x34 0x56 0x78]}
+       {:str "4Vx"})))
