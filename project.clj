@@ -7,4 +7,4 @@
   :java-source-paths ["java-src"]
   :profiles {:dev 
              {:dependencies [[org.clojure/clojure "1.6.0"]
-                             [io.aviso/pretty "0.1.5"]]}})
+                             [io.aviso/pretty "0.1.9"]]}})

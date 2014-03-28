@@ -41,8 +41,12 @@ All functions given in this document refer to the namespace `org.clojars.smee.bi
 
 ## Examples / Demo
 
-Please refer to the [tests](https://github.com/smee/binary/blob/master/test/org/clojars/smee/binary/codectests.clj) for now or the start of an [MP3 IDv2 parser](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/mp3.clj).
-Another demonstration is the [bitcoin block chain parser](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/bitcoin.clj#L168)
+Please refer to the [tests](https://github.com/smee/binary/blob/master/test/org/clojars/smee/binary/codectests.clj) for now. There are several demos:
+
+- the start of an [MP3 IDv2 parser](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/mp3.clj).
+- Another demonstration is the [bitcoin block chain parser](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/bitcoin.clj#L168)
+- [PNG file format](https://gist.github.com/stathissideris/8801295)
+- [MATLAB 5](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/matlab5), currently read-only
 
 ## Codec
 To read binary data we need two things: A `codec` that knows how to read and write it's binary representation and convert it to a clojure data structure and an instance of `java.io.InputStream`.
