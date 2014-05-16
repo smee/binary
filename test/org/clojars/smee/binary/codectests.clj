@@ -204,7 +204,8 @@
 (deftest headers
   (test-all-roundtrips
     [[(header :byte #(string "utf8" :length %) #(.length %)) "ABC" [3 65 66 67]]
-     [(header :byte #(padding (repeated :int-le) :length % :padding-byte 0x99) (constantly 11)) [5 9] [11 5 0 0 0 9 0 0 0 0x99 0x99 0x99]]]))
+     [(header :byte #(padding (repeated :int-le) :length % :padding-byte 0x99) (constantly 11)) [5 9] [11 5 0 0 0 9 0 0 0 0x99 0x99 0x99]]
+     [(header :byte #(repeated :short-be :length %) nil :keep-header? true) {:header 2 :body [1 5]} [2 0 1 0 5]]]))
 
 (deftest enums
   (test-all-roundtrips

@@ -317,12 +317,12 @@ else only the `body` will be returned."
             {:header header 
              :body body}
             body)))
-      (write-data [_ big-out little-out value]
+      (write-data [_ big-out little-out value] 
         (let [body (if keep-header? (:body value) value)
               header (if keep-header? (:header value) (body->header body))
               body-codec (header->body-codec header)]
           (write-data header-codec big-out little-out header)
-          (write-data body-codec big-out little-out value))))))
+          (write-data body-codec big-out little-out body))))))
 
 
 (defn padding
