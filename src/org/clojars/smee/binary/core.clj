@@ -259,9 +259,8 @@ Example:
   [codec constant-value]
   (compile-codec codec
                  (constantly constant-value)
-                 #(do
-                    (assert (= % constant-value) (format "value '%s' should have had the constant value '%s'" (str %) (str constant-value)))
-                    constant-value)))
+                 #(if (= % constant-value) constant-value
+                    (throw (ex-info (format "value '%s' should have had the constant value '%s'" (str %) (str constant-value)) {:constant-value constant-value :value %})))))
 
 (defn string [^String encoding & options]
   {:pre [(some #{:length :prefix :separator} (take-nth 2 options))]}
@@ -449,7 +448,8 @@ Example: Four bytes may represent an integer, two shorts, four bytes, a list of 
   (into {} (for [[k v] m] [v k])))
 
 (defn- strict-map [m]
-  (fn [k] {:pre [(contains? m k)]} (m k)))
+  (fn [k] (if (contains? m k) (m k)
+            (throw (ex-info (str "Unknown enum key: " k) {:enum m :key k})))))
 
 (defn enum [codec m]
   "An enumerated value. `m` must be a 1-to-1 mapping of names (e.g. keywords) to their decoded values.
