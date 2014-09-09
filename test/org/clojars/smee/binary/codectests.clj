@@ -68,9 +68,13 @@
   (test-all-roundtrips
     [[:ubyte 200 [200]]
      [:ushort-be (int 50000) [195 80]]
+     [:ushort-be (int 65535) [0xff 0xff]]
      [:ushort-le (int 50000) [80 195]]
+     [:ushort-le (int 65535) [0xff 0xff]]
      [:uint-le (long 255) [255 0 0 0]]
+     [:uint-le (long 4294967295) [0xff 0xff 0xff 0xff]]
      [:uint-be (long 255) [0 0 0 255]]
+     [:uint-be (long 4294967295) [0xff 0xff 0xff 0xff]]
      [:ulong-le 1N [1 0 0 0 0 0 0 0]] 
      [:ulong-le 1024N [0 4 0 0 0 0 0 0]] 
      [:ulong-le 18446744073709551614N [0xfe 0xff 0xff 0xff 0xff 0xff 0xff 0xff]]
