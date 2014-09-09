@@ -53,9 +53,9 @@
    :int    (primitive-codec .readInt .writeInt int :be)
    :int-le (primitive-codec .readInt .writeInt int :le)
    :int-be (primitive-codec .readInt .writeInt int :be)
-   :uint    (primitive-codec .readUnsignedInt .writeInt long :be)
-   :uint-le (primitive-codec .readUnsignedInt .writeInt long :le)
-   :uint-be (primitive-codec .readUnsignedInt .writeInt long :be)
+   :uint    (primitive-codec .readUnsignedInt .writeUnsignedInt long :be)
+   :uint-le (primitive-codec .readUnsignedInt .writeUnsignedInt long :le)
+   :uint-be (primitive-codec .readUnsignedInt .writeUnsignedInt long :be)
 
    :long    (primitive-codec .readLong .writeLong long :be)
    :long-le (primitive-codec .readLong .writeLong long :le)
