@@ -64,10 +64,10 @@ public class LittleEndianDataInputStream extends FilterInputStream implements Un
 	 {
 		 this.readFully(w, 0, 4);
 		 return
-				 (w[3])      << 24 |
-				 (w[2]&0xff) << 16 |
-				 (w[1]&0xff) <<  8 |
-				 (w[0]&0xff);
+				 (long)(w[3]&0xff) << 24 |
+				 (long)(w[2]&0xff) << 16 |
+				 (long)(w[1]&0xff) <<  8 |
+				 (long)(w[0]&0xff);
 	 }
 	@Override
 	 public final long readLong() throws IOException
