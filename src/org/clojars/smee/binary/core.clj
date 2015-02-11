@@ -501,7 +501,7 @@ Only names and values in `m` will be accepted when encoding or decoding."
       (assert (java.util.Arrays/equals bytes (.getBytes ^String this)) (format "Expected to read string '%s', found '%s' instead." this res))
       res))
   (write-data [this out _ _]
-    (.write ^OutputStream out ^bytes this))
+    (.write ^OutputStream out (.getBytes ^String this)))
   
   clojure.lang.ISeq
   (read-data [this big-in little-in]

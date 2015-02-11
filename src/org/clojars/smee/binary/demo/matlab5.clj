@@ -164,5 +164,8 @@ CAUTION: This implementation is incomplete! Still missing:
 (comment
   (require 'clojure.pprint)
   (set! *print-length* 5)
-  (clojure.pprint/pprint (decode matlab-5-codec (input-stream "e:\\eumonis\\vibration\\csegroups.case.edu\\sites\\default\\files\\bearingdatacenter\\files\\Datafiles\\135.mat")))  
+  (->> "e:\\datasets\\Volumes\\Seagate\\seizure_detection\\competition_data\\clips\\Patient_2\\Patient_2_ictal_segment_0018.mat"
+    input-stream
+    (decode matlab-5-codec)
+    clojure.pprint/pprint)  
   )
