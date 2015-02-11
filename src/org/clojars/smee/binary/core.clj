@@ -1,6 +1,6 @@
 (ns org.clojars.smee.binary.core
   (:use [clojure.java.io :only (input-stream output-stream copy)])
-  (:import [java.io DataInput DataOutput InputStream DataInputStream DataOutputStream ByteArrayInputStream ByteArrayOutputStream])
+  (:import [java.io DataInput DataOutput InputStream DataInputStream DataOutputStream ByteArrayInputStream ByteArrayOutputStream OutputStream])
   (:require [clojure.walk :as walk]))
 
 (defprotocol ^:private BinaryIO
@@ -75,6 +75,7 @@
 
 (declare compile-codec)
 
+
 (defn ordered-map
   "Parse a binary stream into a map."
   [& kvs]
@@ -86,7 +87,7 @@
     (reify
       BinaryIO
       (read-data  [_ big-in little-in]
-        (zipmap ks (map #(read-data % big-in little-in) vs)))
+        (zipmap ks (map (fn ordered-map-values [codec] (read-data codec big-in little-in)) vs)))
       (write-data [_ big-out little-out value]
         {:pre [(every? (set ks) (keys value))]}
         (dorun (map #(write-data % big-out little-out %2)
@@ -140,7 +141,7 @@
        ;; Java interfaces
        java.lang.Iterable
        (iterator [this]
-         (.iterator (seq this))))))
+         (.iterator ^Iterable (seq this))))))
 
 (defn- read-times
   "Performance optimization for `(repeatedly n #(read-data codec big-in little-in))`"
@@ -447,22 +448,61 @@ Example: Four bytes may represent an integer, two shorts, four bytes, a list of 
   {:post [(= (count (keys %)) (count (keys m)))]}
   (into {} (for [[k v] m] [v k])))
 
-(defn- strict-map [m]
-  (fn [k] (if (contains? m k) (m k)
-            (throw (ex-info (str "Unknown enum key: " k) {:enum m :key k})))))
+(defn- strict-map [m lenient?]
+  (fn enum-lookup [k]
+    (if-let [value (m k)]
+      value
+      (if lenient?
+        k
+        (throw (ex-info (str "Unknown enum key: " k) {:enum m :key k}))))))
 
-(defn enum [codec m]
+(defn enum [codec m & {:keys [lenient?] :or {lenient? false}}]
   "An enumerated value. `m` must be a 1-to-1 mapping of names (e.g. keywords) to their decoded values.
 Only names and values in `m` will be accepted when encoding or decoding."
-    (compile-codec codec
-    (strict-map m)
-    (strict-map (map-invert m))))
+  (let [pre-encode (strict-map m lenient?)
+        post-decode (strict-map (map-invert m) lenient?)] 
+    (compile-codec codec pre-encode post-decode)))
+
+#_(defn at-offsets 
+  "Read from a stream at specific offsets. Problems are we are skipping data inbetween and we miss data earlier in the stream."
+  [offset-name-codecs]
+  {:pre [(every? #(= 3 (count %)) offset-name-codecs)]}
+  (let [m (reduce (fn [m [offset name codec]] (assoc m offset [name codec])) (sorted-map) offset-name-codecs)] 
+    (reify BinaryIO
+      (read-data [this big-in little-in]
+        (loop [pos (.size big-in), pairs (seq m), res {}]
+          (if (nil? pairs)
+            res
+            (let [[seek-pos [name codec]] (first pairs)
+                  _ (.skipBytes big-in (- seek-pos pos))
+                  obj (read-data codec big-in little-in)]              
+              (recur (.size big-in) (next pairs) (assoc res name obj))))))
+      (write-data [this big-out little-out values]
+        (throw :not-implemented)))))
 
 ;;;;;;; internal compilation of the DSL into instances of `BinaryIO`
 ;;
 ;; let sequences, vectors, maps and primitive's keywords implement BinaryIO
 ;; that means, compile-codec is optional!
+;; also, strings and byte arrays are treated like `constant`
 (extend-protocol BinaryIO
+  (java.lang.Class/forName "[B")
+  (read-data [this big-in _]
+    (let [^bytes bytes (read-bytes big-in (count this))]
+      (assert (java.util.Arrays/equals ^bytes bytes this) (format "Expected to read array '%s', found '%s' instead." (str (seq this)) (str (seq bytes))))
+      bytes))
+  (write-data [this out _ _]
+    (.write ^OutputStream out (.getBytes ^String this)))
+  
+  java.lang.String
+  (read-data [this big-in _]
+    (let [^bytes bytes (read-bytes big-in (count this))
+          res (String. bytes)]
+      (assert (java.util.Arrays/equals bytes (.getBytes ^String this)) (format "Expected to read string '%s', found '%s' instead." this res))
+      res))
+  (write-data [this out _ _]
+    (.write ^OutputStream out ^bytes this))
+  
   clojure.lang.ISeq
   (read-data [this big-in little-in]
     (map #(read-data % big-in little-in) this))
