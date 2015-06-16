@@ -2,7 +2,8 @@
   (:use clojure.test
         org.clojars.smee.binary.core)
   (:require [org.clojars.smee.binary.demo.protobuf :as pb]
-            [org.clojars.smee.binary.demo.bitcoin :as btc]))
+            [org.clojars.smee.binary.demo.bitcoin :as btc])
+  )
 
 (defn s2b [^String s]
   (vec (.getBytes s "UTF-8")))
@@ -260,8 +261,8 @@
 
 (deftest test-unions
   (let [codec (union 4 {:integer :int-be 
-                        :shorts (repeated :short-be :length 2)
-                        :bytes (repeated :byte :length 4)
+                        :shorts [:short-be :short-be]
+                        :bytes [:byte :byte :byte :byte]
                         :prefixed (repeated :byte :prefix :byte)
                         :str (string "UTF8" :prefix :byte)})
         result {:integer 0x03345678

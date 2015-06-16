@@ -102,7 +102,8 @@
                                    :motorola-68000 4
                                    :motorola-88000 5
                                    :intel-80860 7
-                                   :mips-rs3000 8} :lenient? true)    ; machine type
+                                   :mips-rs3000 8
+                                   :amd64 62} :lenient? true)    ; machine type
             :e-version word   ; object file version
             :e-entry addr     ; entry point address
             :e-phoff off      ; program header offset
@@ -116,10 +117,10 @@
             :e-shstmdx half   ; section name string table index
             )))
       nil
-      :keep-header? true))
-  (compile-codec
-    #(hash-map :header (:e-ident %) :body (dissoc % :e-ident))
-    #(assoc (:body %) :e-ident (:header %))))
+      :keep-header? true)
+    (compile-codec
+      #(hash-map :header (:e-ident %) :body (dissoc % :e-ident))
+      #(assoc (:body %) :e-ident (:header %)))))
 
 (def elf-codec
   (-> ehdr
@@ -133,17 +134,14 @@
 
 
 
+
 (comment
   (require 'clojure.pprint)
   (set! *print-length* nil)
   (with-open [is (CountingInputStream. (input-stream "echo32"))
               os (clojure.java.io/output-stream "echo32.out")] 
     (let [elf (decode elf-codec is)] 
-      (clojure.pprint/pprint elf)
-      (loop [hdrs (next (:p-headers elf)), pos (.size is)]
-        (when hdrs
-          (println pos (:p-offset (first hdrs)) (:p-filesz (first hdrs)))
-          (recur (next hdrs) (+ pos (:p-filesz (first hdrs))))))
+      (clojure.pprint/pprint elf)      
       (encode elf-codec os elf))
     (println (format "bytes read: %x" (.size is))))  
   )

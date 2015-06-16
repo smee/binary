@@ -201,7 +201,8 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
                      (if (not= length (count values))
                        (throw (java.lang.IllegalArgumentException. (str "This sequence should have length " length " but has really length " (count values))))
                        (doseq [value values]
-                         (write-data codec big-out little-out value)))))
+                         (write-data codec big-out little-out value))))
+                   Object (toString [_] (str "<BinaryIO repeated,length=" length ">")))
           ; use prefix-codec?
           prefix (let [prefix-codec (compile-codec prefix)]
                    (reify BinaryIO
@@ -211,20 +212,23 @@ Example: To read a sequence of integers with a byte prefix for the length use `(
                      (write-data [_ big-out little-out values]
                        (let [length (count values)]
                          (write-data prefix-codec big-out little-out length)
-                         (dorun (map #(write-data codec big-out little-out %) values))))))
+                         (dorun (map #(write-data codec big-out little-out %) values))))
+                     Object (toString [_] (str "<BinaryIO repeated,prefix=" prefix-codec ">"))))
           separator (reify BinaryIO
                       (read-data  [_ big-in little-in]
                         (read-until-separator codec big-in little-in separator))
                       (write-data [_ big-out little-out values]
                         (doseq [value values]
                           (write-data codec big-out little-out value))
-                        (write-data codec big-out little-out separator)))
+                        (write-data codec big-out little-out separator))
+                      Object (toString [_] (str "<BinaryIO repeated,separator=" separator ">")))
           :else (reify BinaryIO
                   (read-data  [_ big-in little-in]
                     (read-exhausting codec big-in little-in))
                   (write-data [_ big-out little-out values]
                     (doseq [value values]
-                      (write-data codec big-out little-out value)))))))
+                      (write-data codec big-out little-out value)))
+                  Object (toString [_] (str "<BinaryIO repeated, unbounded>"))))))
 
 (defn- read-bytes [^DataInput in len]
   (let [bytes (byte-array len)]
@@ -241,7 +245,8 @@ Options as in `repeated`, except :separator is not supported."
                  (write-data [_ big-out little-out bytes]
                    (if (not= length (alength ^"[B" bytes))
                      (throw (java.lang.IllegalArgumentException. (str "This sequence should have length " length " but has really length " (alength bytes))))
-                     (.write ^DataOutput big-out ^"[B" bytes))))
+                     (.write ^DataOutput big-out ^"[B" bytes)))
+                 Object (toString [_] (str "<BinaryIO blob,length=" length ">")))
         prefix (let [prefix-codec (compile-codec prefix)]
                  (reify BinaryIO
                    (read-data  [_ big-in little-in]
@@ -250,14 +255,16 @@ Options as in `repeated`, except :separator is not supported."
                    (write-data [_ big-out little-out bytes]
                      (let [length (alength ^"[B" bytes)]
                        (write-data prefix-codec big-out little-out length)
-                       (.write ^DataOutput big-out ^"[B" bytes)))))
+                       (.write ^DataOutput big-out ^"[B" bytes)))
+                   Object (toString [_] (str "<BinaryIO blob,prefix=" prefix-codec ">"))))
         :else (reify BinaryIO
                 (read-data  [_ big-in little-in]
                   (let [byte-stream (ByteArrayOutputStream.)]
                     (copy big-in byte-stream)
                     (.toByteArray byte-stream)))
                 (write-data [_ big-out little-out bytes]
-                  (.write ^DataOutput big-out ^"[B" bytes)))))
+                  (.write ^DataOutput big-out ^"[B" bytes))
+                Object (toString [_] (str "<BinaryIO blob,unbounded>")))))
 
 (defn constant
   "Reads a constant value, ignores given value on write. Can be used as a version tag for a composite codec.
@@ -329,7 +336,8 @@ else only the `body` will be returned."
               header (if keep-header? (:header value) (body->header body))
               body-codec (header->body-codec header)]
           (write-data header-codec big-out little-out header)
-          (write-data body-codec big-out little-out body))))))
+          (write-data body-codec big-out little-out body)))
+      Object (toString [_] (str "<BinaryIO header,codec=" header-codec ">")))))
 
 
 (defn padding
@@ -350,16 +358,17 @@ Example:
                          padding-byte
                          truncate?] 
                   :or {padding-byte 0
-                       truncate? false}}]
+                       truncate? false}
+                  :as opts}]
   {:pre [(every? number? [padding-byte length])
          (codec? inner-codec)]}
   (reify BinaryIO
     (read-data  [_ big-in _]
       (let [bytes (byte-array length)
             _ (.readFully ^DataInput big-in bytes)
-            in (java.io.ByteArrayInputStream. bytes)
-            big-in (BigEndianDataInputStream. (CountingInputStream. in))
-            little-in (LittleEndianDataInputStream. (CountingInputStream. in))]
+            in (wrap-input-stream (java.io.ByteArrayInputStream. bytes))
+            big-in (BigEndianDataInputStream. in)
+            little-in (LittleEndianDataInputStream. in)]
         (read-data inner-codec big-in little-in)))
     (write-data [_ big-out _ value]
       (let [baos (ByteArrayOutputStream. length)
@@ -373,7 +382,8 @@ Example:
           (throw (ex-info (str "Data should be max. " length " bytes, but attempting to write " (Math/abs (- len length)) " bytes more!") {:overflow-bytes (Math/abs (- len length))}))
           (do
             (.write ^DataOutputStream big-out arr 0 len)
-            (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-byte))))))))
+            (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-byte))))))
+    Object (toString [_] (str "<BinaryIO padding, inner codec=" inner-codec ", options=" opts ">"))))
 
 (defn align
   "This codec is related to `padding` in that it makes sure that the number of bytes
@@ -392,7 +402,8 @@ Example:
   [inner-codec & {:keys [modulo 
                          padding-byte] 
                   :or {padding-byte 0
-                       modulo 1}}]
+                       modulo 1}
+                  :as opts}]
   {:pre [(number? modulo)
          (number? padding-byte)
          (pos? modulo) 
@@ -400,9 +411,8 @@ Example:
   (reify BinaryIO
     (read-data  [_ b l] 
       (let [^UnsignedDataInput b b
-            ^UnsignedDataInput l l
             data (read-data inner-codec b l)
-            size (+ (.size b) (.size l))
+            size (.size b)
             padding-bytes-left (mod (- modulo (mod size modulo)) modulo)]
         (dotimes [_ padding-bytes-left] (.readByte b))
         data))
@@ -412,7 +422,8 @@ Example:
             _ (write-data inner-codec b little-out value)
             size (+ (.size b) (.size l))
             padding-bytes-left (mod (- modulo (mod size modulo)) modulo)]
-        (dotimes [_ padding-bytes-left] (.writeByte b padding-byte))))))
+        (dotimes [_ padding-bytes-left] (.writeByte b padding-byte))))
+    Object (toString [_] (str "<BinaryIO aligned, options=" opts ">"))))
 
 
 (defn union 
@@ -433,12 +444,13 @@ Example: Four bytes may represent an integer, two shorts, four bytes, a list of 
   [bytes-length codecs-map]
   (padding 
     (reify BinaryIO
-      (read-data  [_ big-in little-in]
+      (read-data  [_ big-in _]
         (let [arr (byte-array bytes-length)
               _ (.readFully ^UnsignedDataInput big-in arr)
               bais (ByteArrayInputStream. arr)
-              os-b (BigEndianDataInputStream. (CountingInputStream. bais))
-              os-l (LittleEndianDataInputStream. (CountingInputStream. bais))
+              is (wrap-input-stream bais)
+              os-b (BigEndianDataInputStream. is)
+              os-l (LittleEndianDataInputStream. is)
               vals (doall (for [[n codec] codecs-map]
                             (do (.reset bais) 
                               [n (read-data codec os-b os-l)])))]
@@ -448,7 +460,8 @@ Example: Four bytes may represent an integer, two shorts, four bytes, a list of 
               codec (codecs-map k)]
           (if (not codec)
             (throw (ex-info (str "No known codec for value with key " k) {:value value :unknown-key k :codecs codecs-map}))
-            (write-data codec big-out little-out (get value k))))))
+            (write-data codec big-out little-out (get value k)))))
+      Object (toString [_] (str "<BinaryIO union of " codecs-map ">")))
     :length bytes-length))
 
 (defn- map-invert [m]
@@ -535,6 +548,8 @@ Only names and values in `m` will be accepted when encoding or decoding."
     (dorun (map (fn [[k v]] (write-data (get m k) big-out little-out v)) value))))
 
 (defn compile-codec
+  "Wrap a `codec` into to pre- and post-processing functions to be applied to the value
+before writing/after reading. Use these to transform values according to domain specific rules."
   ([codec] (if (codec? codec)
              codec
              (throw (ex-info (str codec " does not satisfy the protocol BinaryIO!" ) {:codec codec}))))
@@ -544,9 +559,11 @@ Only names and values in `m` will be accepted when encoding or decoding."
         (read-data  [_ big-in little-in]
           (post-decode (read-data codec big-in little-in)))
         (write-data [_ big-out little-out value]
-          (write-data codec big-out little-out (pre-encode value)))))))
+          (write-data codec big-out little-out (pre-encode value)))
+        Object (toString [_] (str "<BinaryIO wrapped, inner=" codec ">"))))))
 
 ;;;;;;;;;;;;;; API for en-/decoding
+
 
 (defn encode
   "Serialize a value to the OutputStream `out` according to the codec."
@@ -558,6 +575,7 @@ Only names and values in `m` will be accepted when encoding or decoding."
 (defn decode
   "Deserialize a value from the InputStream `in` according to the codec."
   [codec in]
-  (let [big-in (BigEndianDataInputStream. (CountingInputStream. in))
-        little-in (LittleEndianDataInputStream. (CountingInputStream. in))]
+  (let [wrapped (wrap-input-stream in)
+        big-in (BigEndianDataInputStream. wrapped)
+        little-in (LittleEndianDataInputStream. wrapped)]
     (read-data codec big-in little-in)))
