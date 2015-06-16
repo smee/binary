@@ -3,7 +3,7 @@
         org.clojars.smee.binary.core)
   (:require [org.clojars.smee.binary.demo.protobuf :as pb]
             [org.clojars.smee.binary.demo.bitcoin :as btc])
-  )
+  (:import impl.NullOutputStream))
 
 (defn s2b [^String s]
   (vec (.getBytes s "UTF-8")))

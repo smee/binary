@@ -1,4 +1,4 @@
-(defproject smee/binary "0.5.0"
+(defproject smee/binary "0.5.1-SNAPSHOT"
   :description "DSL for binary I/O using java's stream apis."
   :url "http://github.com/smee/binary"
   :license {:name "Eclipse Public License"
