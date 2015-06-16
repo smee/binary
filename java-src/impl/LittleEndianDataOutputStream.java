@@ -1,3 +1,6 @@
+package impl;
+import interfaces.UnsignedDataOutput;
+
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;

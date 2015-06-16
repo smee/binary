@@ -1,7 +1,9 @@
+package impl;
+import interfaces.UnsignedDataInput;
+
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigInteger;
 
 import clojure.lang.BigInt;
@@ -9,9 +11,10 @@ import clojure.lang.BigInt;
 
 public class BigEndianDataInputStream extends DataInputStream implements UnsignedDataInput {
 
-	
+	private CountingInputStream d;
 	public BigEndianDataInputStream(CountingInputStream in) {
 		super(in);
+		this.d = in;
 	}
 	
 	/* (non-Javadoc)
@@ -39,9 +42,8 @@ public class BigEndianDataInputStream extends DataInputStream implements Unsigne
 		w[0]=(byte) (isMax?1:0);
 		return  BigInt.fromBigInteger(new BigInteger(w));
 	}
-
 	@Override
 	public long size() {
-		return ((CountingInputStream)in).size();
+		return this.d.size();
 	}
 }

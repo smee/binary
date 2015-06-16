@@ -1,8 +1,9 @@
-import java.io.DataInputStream;
+package impl;
+import interfaces.UnsignedDataInput;
+
 import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigInteger;
 
 import clojure.lang.BigInt;
@@ -160,12 +161,9 @@ public class LittleEndianDataInputStream extends FilterInputStream implements Un
 	 public final void close() throws IOException {
 		 d.close();
 	 }
-	/**
-	 * @return number of bytes already read from the delegated inputstream
-	 */
-	 @Override
-	public final long size() {
-		return d.size();
+	@Override
+	public long size() {
+		return this.d.size();
 	}
 
 }

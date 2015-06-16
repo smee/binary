@@ -1,7 +1,14 @@
 (ns org.clojars.smee.binary.core
   (:use [clojure.java.io :only (input-stream output-stream copy)])
-  (:import [java.io DataInput DataOutput InputStream DataInputStream DataOutputStream ByteArrayInputStream ByteArrayOutputStream OutputStream])
+  (:import [java.io DataInput DataOutput InputStream DataInputStream DataOutputStream ByteArrayInputStream ByteArrayOutputStream OutputStream]
+           [impl BigEndianDataInputStream BigEndianDataOutputStream
+                 LittleEndianDataInputStream LittleEndianDataOutputStream
+                 RandomAccessInputStream
+                 CountingInputStream]
+           [interfaces UnsignedDataInput UnsignedDataOutput])
   (:require [clojure.walk :as walk]))
+
+(defn- wrap-input-stream ^InputStream [in] (-> in (CountingInputStream.)))
 
 (defprotocol ^:private BinaryIO
   (read-data  [codec big-in little-in])
@@ -21,9 +28,9 @@
         out (if (= endianess :le) little-out big-out)]
     `(reify BinaryIO
        (read-data [codec# ~big-in ~little-in]
-          (~cast-fn (~get-fn ~(with-meta in {:tag "UnsignedDataInput"}))))
+          (~cast-fn (~get-fn ~(with-meta in {:tag "interfaces.UnsignedDataInput"}))))
        (write-data [codec# ~big-out ~little-out value#]
-          (~write-fn ~(with-meta out {:tag "UnsignedDataOutput"}) value#))
+          (~write-fn ~(with-meta out {:tag "interfaces.UnsignedDataInput"}) value#))
        Object (toString [_#] (str "<BinaryIO " '~get-fn ">")))))
 
 (defn byte->ubyte [b]

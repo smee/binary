@@ -1,3 +1,4 @@
+package impl;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -39,5 +40,16 @@ public class CountingInputStream extends InputStream {
 		if(v>-1) count++;
 		return v;
 	}
-
+//	public long getOffset() throws IOException {
+//		return delegate.getOffset();
+//	}
+//	public void seek(long loc) throws IOException {
+//		delegate.seek(loc);
+//	}
+//	public void mark(int readlimit) {
+//		delegate.mark(readlimit);
+//	}
+//	public void reset() throws IOException {
+//		delegate.reset();
+//	}
 }
