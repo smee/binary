@@ -47,7 +47,7 @@ Please refer to the [tests](https://github.com/smee/binary/blob/master/test/org/
 - Another demonstration is the [bitcoin block chain parser](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/bitcoin.clj#L168)
 - [PNG file format](https://gist.github.com/stathissideris/8801295)
 - [MATLAB 5](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/matlab5), currently read-only
-- [ELF 32/64](https://github.com/smee/binary/blobk/master/src/org/clojars/smee/binary/demo/elf.clj)
+- [ELF 32/64](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/elf.clj)
 
 ## Codec
 To read binary data we need two things: A `codec` that knows how to read and write it's binary representation and convert it to a clojure data structure and an instance of `java.io.InputStream`.
