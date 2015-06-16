@@ -47,6 +47,7 @@ Please refer to the [tests](https://github.com/smee/binary/blob/master/test/org/
 - Another demonstration is the [bitcoin block chain parser](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/bitcoin.clj#L168)
 - [PNG file format](https://gist.github.com/stathissideris/8801295)
 - [MATLAB 5](https://github.com/smee/binary/blob/master/src/org/clojars/smee/binary/demo/matlab5), currently read-only
+- [ELF 32/64](https://github.com/smee/binary/blobk/master/src/org/clojars/smee/binary/demo/elf.clj)
 
 ## Codec
 To read binary data we need two things: A `codec` that knows how to read and write it's binary representation and convert it to a clojure data structure and an instance of `java.io.InputStream`.
@@ -206,6 +207,8 @@ If a binary format uses fixed elements (like the three bytes 'ID3' in mp3), you 
 ``` clojure
 (constant (string "ISO-8859-1" :length 3) "ID3")
 ```
+Alternatively, you may treat strings and byte arrays as ```constant``` encoders.
+
 
 ### Union
 Union is a C-style union. A fixed number of bytes may represent different values depending on the interpretation of the bytes. The value returned by `read-data` is a map of all valid interpretations according to the specified unioned codecs.
