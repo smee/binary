@@ -52,7 +52,7 @@
    :short    (primitive-codec .readShort .writeShort short :be)
    :short-le (primitive-codec .readShort .writeShort short :le)
    :short-be (primitive-codec .readShort .writeShort short :be)
-   
+
    :ushort    (primitive-codec .readUnsignedShort .writeUnsignedShort int :be)
    :ushort-le (primitive-codec .readUnsignedShort .writeUnsignedShort int :le)
    :ushort-be (primitive-codec .readUnsignedShort .writeUnsignedShort int :be)
@@ -315,7 +315,7 @@ Flag names `null` are ignored. Bit count will be padded up to the next multiple 
                    (fn [bytes] (set (map idx->flags (filter #(bit-set? bytes %) bit-indices)))))))
 
 (defn header
-  "Decodes a header using `header-codec`. Passes this datastructure to `header->body` which returns the codec to
+  "Decodes a header using `header-codec`. Passes this datastructure to `header->body-codec` which returns the codec to
 use to parse the body. For writing this codec calls `body->header` with the data as parameter and
 expects a value to use for writing the header information.
 If the optional flag `:keep-header` is set, read will return a vector of `[header body]`
@@ -327,11 +327,11 @@ else only the `body` will be returned."
         (let [header (read-data header-codec big-in little-in)
               body-codec (header->body-codec header)
               body (read-data body-codec big-in little-in)]
-          (if keep-header? 
-            {:header header 
+          (if keep-header?
+            {:header header
              :body body}
             body)))
-      (write-data [_ big-out little-out value] 
+      (write-data [_ big-out little-out value]
         (let [body (if keep-header? (:body value) value)
               header (if keep-header? (:header value) (body->header body))
               body-codec (header->body-codec header)]
@@ -354,9 +354,9 @@ Example:
     (encode (padding (repeated (string \"UTF8\" :separator 0)) :length 11 :truncate? true) outstream [\"abc\" \"def\" \"ghi\"])
     => ; writes bytes [97 98 99 0 100 101 102 0 103 104 105]
        ; observe: the last separator byte was truncated!"
-  [inner-codec & {:keys [length 
+  [inner-codec & {:keys [length
                          padding-byte
-                         truncate?] 
+                         truncate?]
                   :or {padding-byte 0
                        truncate? false}
                   :as opts}]
@@ -426,12 +426,12 @@ Example:
     Object (toString [_] (str "<BinaryIO aligned, options=" opts ">"))))
 
 
-(defn union 
+(defn union
   "Union is a C-style union. A fixed number of bytes may represent different values depending on the
 interpretation of the bytes. The value returned by `read-data` is a map of all valid interpretations according to
 the specified unioned codecs.
 Parameter is the number of bytes needed for the longest codec in this union and a map of value names to codecs.
-This codec will read the specified number of bytes from the input streams and then successively try to read 
+This codec will read the specified number of bytes from the input streams and then successively try to read
 from this byte array using each individual codec.
 
 Example: Four bytes may represent an integer, two shorts, four bytes, a list of bytes with prefix or a string.
@@ -442,7 +442,7 @@ Example: Four bytes may represent an integer, two shorts, four bytes, a list of 
               :prefixed (repeated :byte :prefix :byte)
               :str (string \"UTF8\" :prefix :byte)})"
   [bytes-length codecs-map]
-  (padding 
+  (padding
     (reify BinaryIO
       (read-data  [_ big-in _]
         (let [arr (byte-array bytes-length)
@@ -480,14 +480,14 @@ Example: Four bytes may represent an integer, two shorts, four bytes, a list of 
   "An enumerated value. `m` must be a 1-to-1 mapping of names (e.g. keywords) to their decoded values.
 Only names and values in `m` will be accepted when encoding or decoding."
   (let [pre-encode (strict-map m lenient?)
-        post-decode (strict-map (map-invert m) lenient?)] 
+        post-decode (strict-map (map-invert m) lenient?)]
     (compile-codec codec pre-encode post-decode)))
 
-#_(defn at-offsets 
+#_(defn at-offsets
   "Read from a stream at specific offsets. Problems are we are skipping data inbetween and we miss data earlier in the stream."
   [offset-name-codecs]
   {:pre [(every? #(= 3 (count %)) offset-name-codecs)]}
-  (let [m (reduce (fn [m [offset name codec]] (assoc m offset [name codec])) (sorted-map) offset-name-codecs)] 
+  (let [m (reduce (fn [m [offset name codec]] (assoc m offset [name codec])) (sorted-map) offset-name-codecs)]
     (reify BinaryIO
       (read-data [this big-in little-in]
         (loop [pos (.size big-in), pairs (seq m), res {}]
@@ -495,7 +495,7 @@ Only names and values in `m` will be accepted when encoding or decoding."
             res
             (let [[seek-pos [name codec]] (first pairs)
                   _ (.skipBytes big-in (- seek-pos pos))
-                  obj (read-data codec big-in little-in)]              
+                  obj (read-data codec big-in little-in)]
               (recur (.size big-in) (next pairs) (assoc res name obj))))))
       (write-data [this big-out little-out values]
         (throw :not-implemented)))))
@@ -513,7 +513,7 @@ Only names and values in `m` will be accepted when encoding or decoding."
       bytes))
   (write-data [this out _ _]
     (.write ^OutputStream out (.getBytes ^String this)))
-  
+
   java.lang.String
   (read-data [this big-in _]
     (let [^bytes bytes (read-bytes big-in (count this))
@@ -522,7 +522,7 @@ Only names and values in `m` will be accepted when encoding or decoding."
       res))
   (write-data [this out _ _]
     (.write ^OutputStream out (.getBytes ^String this)))
-  
+
   clojure.lang.ISeq
   (read-data [this big-in little-in]
     (map #(read-data % big-in little-in) this))
