@@ -1,6 +1,6 @@
 (ns ^{:doc "MP3 IDv2 tags, according to the current specification at http://www.id3.org/id3v2.4.0-structure"
       :author "Steffen Dienst"} 
-  siemens-pv-data.mp3
+  org.clojars.smee.binary.demo.mp3
   (:use clojure.test
         org.clojars.smee.binary.core))
 
