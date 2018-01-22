@@ -174,10 +174,10 @@ Currently there are three options:
 Example:
 
 ``` clojure
-(padding (repeated :int-le :length 100) 1024 :padding-byte (byte \x))
+(padding (repeated :int-le :length 100) :length 1024 :padding-byte (byte \x))
 => [...] ; sequence of 100 integers, the stream will have 1024 bytes read, though
 
-(encode (padding (repeated (string "UTF8" :separator 0)) 11 :truncate? true) outstream ["abc" "def" "ghi"])
+(encode (padding (repeated (string "UTF8" :separator 0)) :length 11 :truncate? true) outstream ["abc" "def" "ghi"])
 => ; writes bytes [97 98 99 0 100 101 102 0 103 104 105]
    ; observe: the last separator byte was truncated!
 ```
