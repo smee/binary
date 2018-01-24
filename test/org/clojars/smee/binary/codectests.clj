@@ -38,8 +38,7 @@
 (defn- test-roundtrip [codec value expected-bytes]
   (let [{:keys [decoded value encoded]} (do-roundtrip codec value)
         value (clojure.walk/postwalk replace-arrays value)
-        decoded (clojure.walk/postwalk replace-arrays decoded)
-        ]
+        decoded (clojure.walk/postwalk replace-arrays decoded)]
     (is (= decoded value))
     (when expected-bytes
       (is (= encoded (mapv byte->ubyte expected-bytes))))))
@@ -53,6 +52,7 @@
   (test-all-roundtrips
     [[:byte (byte 55) [55]]
      [:byte (byte -56) [-56]]
+     [:byte (byte -1) [255]]
      [:short-be (short 5) [0 5]]
      [:short-le (short 5) [5 0]]
      [:int-be (int 127) [0 0 0 127]]
@@ -68,6 +68,7 @@
 (deftest unsigned-primitive-encodings
   (test-all-roundtrips
     [[:ubyte 200 [200]]
+     [:ubyte 255 [255]]
      [:ushort-be (int 50000) [195 80]]
      [:ushort-be (int 65535) [0xff 0xff]]
      [:ushort-le (int 50000) [80 195]]
@@ -110,17 +111,7 @@
     [[(ordered-map
         :foo :int-be
         :bar :short-le
-        :baz :ubyte) {:foo 1 :bar 0, :baz 255} [0 0 0 1 0 0 255]]
-     ; if the map is no `ordered-map`, the binary order is undefined!
-     [{:foo :int-be
-       :bar :short-le
-       :baz :ubyte} {:foo 1 :bar 0, :baz 255}]
-     [{:foo :int-be
-       :baz :ubyte
-       :bar :short-le} {:foo 1 :bar 0, :baz 255}]
-     [{:baz :ubyte
-       :bar :short-le
-       :foo :int-be} {:foo 1 :bar 0, :baz 255}]]))
+        :baz :ubyte) {:foo 1 :bar 0, :baz 255} [0 0 0 1 0 0 255]]]))
 
 (deftest map-manipulations
   (is (= 0 (count (ordered-map))))
