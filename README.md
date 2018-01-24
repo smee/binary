@@ -8,7 +8,7 @@ It is inspired by [Lamina](https://github.com/ztellman/lamina) but focuses on ja
 
 ## Artifacts
 
-Binary artifacts are [released to Clojars](https://clojars.org/org.clojars.smee/binary). If you are using Maven, add the following repository
+Binary artifacts are [released to Clojars](https://clojars.org/smee/binary). If you are using Maven, add the following repository
 definition to your `pom.xml`:
 
 ``` xml
