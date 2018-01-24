@@ -29,6 +29,39 @@ http://james.lab6.com/2012/01/12/bitcoin-285-bytes-that-changed-the-world"
           (< value 0xffffffff) (do (.writeByte ^DataOutput little-out 0xfe) (write-data i-le big-out little-out value))
           :else (do (.writeByte ^DataOutput little-out 0xff) (write-data l-le big-out little-out value)))))))
 
+;;;;;;;;;;; messages ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- sha256 [^bytes bs]
+  (let [hash (java.security.MessageDigest/getInstance "SHA-256")]
+    (.digest hash bs)))
+
+(defn- message-checksum [bs]
+  (let [hash (-> bs byte-array sha256 sha256)
+        res (byte-array 4)]
+    (System/arraycopy hash 0 res 0 4)
+    (mapv byte->ubyte res)))
+
+;; see https://en.bitcoin.it/wiki/Protocol_documentation#Message_structure
+(def message (ordered-map :magic (enum :uint-le {:main 0xD9B4BEF9
+                                                 :testnet 0xDAB5BFFA
+                                                 :testnet3 0x0709110B
+                                                 :namecoin 0xFEB4BEF9})
+                          :command (padding (c-string "US-ASCII")
+                                            :length 12 :padding-byte 0 :truncate? true)
+                          :payload (header (ordered-map :length :uint-le
+                                                        :checksum (repeated :ubyte :length 4))
+                                           ;; how should we parse the body for this header?
+                                           (fn [{:keys [length checksum]}]
+                                             (compile-codec (repeated :ubyte :length length)
+                                                            identity
+                                                            (fn [payload]
+                                                              (assert (= checksum (message-checksum payload)))
+                                                              payload)))
+                                           ;; create a new header for this body
+                                           (fn [payload]
+                                             {:length (count payload)
+                                              :checksum (message-checksum payload)}))))
+
 ;;;;;;;;;;; transaction scripts ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def ^:private opcodes 
