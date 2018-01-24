@@ -2,7 +2,7 @@
 
 This library is a high performance binary parser combinator. It enables reading and writing arbitrary binary data from Java's io streams. The focus is on enabling parsing of externally defined binary structures. If you have a format specification for any binary structure, this library is for you!
 
-It is inspired by [Lamina](https://github.com/ztellman/lamina) but focuses on java's stream classes. The individual codecs do not require explicit knowledge about the length of data that needs to be read.
+It is inspired by [Gloss](https://github.com/ztellman/gloss) but focuses on java's stream classes. The individual codecs do not require explicit knowledge about the length of data that needs to be read.
 
 [![Build Status](https://secure.travis-ci.org/smee/binary.png)](http://travis-ci.org/smee/binary)
 
