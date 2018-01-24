@@ -96,7 +96,9 @@
     [[(string "UTF8" :prefix :byte) "ABC" [3 65 66 67]]
      [(string "UTF8" :prefix :int-be) "ABC" [0 0 0 3 65 66 67]]
      [(string "UTF8" :prefix :short-le) "ABC" [3 0 65 66 67]]
-     [(string "UTF8" :length 2) "AA" [65 65]]]))
+     [(string "UTF8" :length 2) "AA" [65 65]]
+     ;; unbounded length
+     [(string "US-ASCII") "ABC" [65 66 67]]]))
 
 (deftest c-string-encodings
   (test-all-roundtrips
@@ -183,11 +185,16 @@
   (test-all-roundtrips
     [[(padding :int-be :length 6 :padding-byte (int \x)) (int 55) [0 0 0 55 120 120]]
      [(padding (string "UTF8" :length 6) :length 6) "abcdef" [97 98 99 100 101 102]]
-     [(padding (repeated :int-le) :length 10 :padding-byte 0x99) [1 2] [1 0 0 0 2 0 0 0 0x99 0x99]]]))
+     [(padding (repeated :int-le) :length 10 :padding-byte 0x99) [1 2] [1 0 0 0 2 0 0 0 0x99 0x99]]
+     [(padding (c-string "US-ASCII") :length 12 :padding-byte 0 :truncate? true) "version" [0x76 0x65 0x72 0x73 0x69 0x6F 0x6E 00 00 00 00 00]]
+     [(padding (c-string "US-ASCII") :length 3 :padding-byte 0 :truncate? true) "ABC" [65 66 67]]
+     ]))
 
 (deftest padding-truncate
-  (test-all-roundtrips
-    [[(padding (repeated (string "UTF8" :separator 0)) :length 11 :truncate? true) ["abc" "def" "ghi"] (s2b "abc\u0000def\u0000ghi")]]))
+  (let [codec (padding (repeated (string "UTF8" :separator 0)) :length 11 :truncate? true)
+        value ["abc" "def" "ghi"]]
+    (test-roundtrip codec value (s2b "abc\u0000def\u0000ghi"))
+    (is (= (:decoded (do-roundtrip codec (concat value ["will be cut"]))) value))))
 
 (deftest test-alignment
   (test-all-roundtrips

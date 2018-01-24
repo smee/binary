@@ -278,7 +278,6 @@ Example:
                     (throw (ex-info (format "value '%s' should have had the constant value '%s'" (str %) (str constant-value)) {:constant-value constant-value :value %})))))
 
 (defn string [^String encoding & options]
-  {:pre [(some #{:length :prefix :separator} (take-nth 2 options))]}
   (compile-codec
     (apply repeated :byte options)
     (fn string2bytes [^String s] (.getBytes s encoding))
@@ -318,7 +317,7 @@ Flag names `null` are ignored. Bit count will be padded up to the next multiple 
   "Decodes a header using `header-codec`. Passes this datastructure to `header->body-codec` which returns the codec to
 use to parse the body. For writing this codec calls `body->header` with the data as parameter and
 expects a value to use for writing the header information.
-If the optional flag `:keep-header` is set, read will return a vector of `[header body]`
+  If the optional flag `:keep-header` is set, read will return a map with the keys`:header` and `body`
 else only the `body` will be returned."
   [header-codec header->body-codec body->header & {:keys [keep-header?] :or {keep-header? false}}]
   (let [header-codec (compile-codec header-codec)]
@@ -376,9 +375,10 @@ Example:
             little-o (LittleEndianDataOutputStream. baos)
             _ (write-data inner-codec big-o little-o value)
             arr (.toByteArray baos)
-            len (if truncate? length (.size baos))
-            padding-bytes-left (max 0 (- length len))]
-        (if (< (- length len) 0)
+            len (if truncate? (min length (.size baos)) (.size baos))
+            padding-bytes-left (max 0 (- length len))
+            too-big? (> len length)]
+        (if (and (not truncate?) too-big?)
           (throw (ex-info (str "Data should be max. " length " bytes, but attempting to write " (Math/abs (- len length)) " bytes more!") {:overflow-bytes (Math/abs (- len length))}))
           (do
             (.write ^DataOutputStream big-out arr 0 len)
