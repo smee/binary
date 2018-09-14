@@ -331,8 +331,11 @@ else only the `body` will be returned."
              :body body}
             body)))
       (write-data [_ big-out little-out value]
-        (let [body (if keep-header? (:body value) value)
-              header (if keep-header? (:header value) (body->header body))
+        (let [body   (if keep-header? (:body value) value)
+              header (cond (and keep-header? body->header)
+                           (body->header (:header value) (:body value))
+                           keep-header? (:header value)
+                           :else        (body->header body))
               body-codec (header->body-codec header)]
           (write-data header-codec big-out little-out header)
           (write-data body-codec big-out little-out body)))
