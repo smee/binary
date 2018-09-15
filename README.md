@@ -23,7 +23,7 @@ definition to your `pom.xml`:
 With [Leiningen](http://leiningen.org):
 
 ``` clojure
-[smee/binary "0.5.2"]
+[smee/binary "0.5.3"]
 ```
 
 With Maven:
@@ -32,7 +32,7 @@ With Maven:
 <dependency>
   <groupId>smee</groupId>
   <artifactId>binary</artifactId>
-  <version>0.5.1</version>
+  <version>0.5.3</version>
 </dependency>
 ```
 
