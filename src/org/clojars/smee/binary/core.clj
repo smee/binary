@@ -473,7 +473,7 @@ Example: Four bytes may represent an integer, two shorts, four bytes, a list of 
 
 (defn- strict-map [m lenient?]
   (fn enum-lookup [k]
-    (if-let [value (m k)]
+    (if-some [value (m k)]
       value
       (if lenient?
         k

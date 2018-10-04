@@ -214,7 +214,9 @@
   (test-all-roundtrips
     [[(enum :byte {:apple 1 :banana 2 :durian 3}) :durian [3]]
      [(enum (string "UTF8" :length 2) {:alabama "AL" :alaska "AK" :arizona "AZ"}) :alaska [65 75]]
-     [(enum (ordered-map :red :ubyte :green :ubyte :blue :ubyte) {:yellow {:red 255 :green 255 :blue 0}}) :yellow [255 255 0]]])
+     [(enum (ordered-map :red :ubyte :green :ubyte :blue :ubyte) {:yellow {:red 255 :green 255 :blue 0}}) :yellow [255 255 0]]
+     [(enum :ubyte {true 1 false 0}) false [0]]
+     [(enum :ubyte {true 1 false 0}) true [1]]])
   (is (thrown? java.lang.RuntimeException
                (decode (enum :byte {:val 1})
                  (java.io.ByteArrayInputStream. (byte-array [(byte 2)]))))))
