@@ -30,7 +30,7 @@
        (read-data [codec# ~big-in ~little-in]
           (~cast-fn (~get-fn ~(with-meta in {:tag "interfaces.UnsignedDataInput"}))))
        (write-data [codec# ~big-out ~little-out value#]
-          (~write-fn ~(with-meta out {:tag "interfaces.UnsignedDataInput"}) value#))
+          (~write-fn ~(with-meta out {:tag "interfaces.UnsignedDataOutput"}) value#))
        Object (toString [_#] (str "<BinaryIO " '~get-fn ">")))))
 
 (defn byte->ubyte [b]
@@ -244,7 +244,7 @@ Options as in `repeated`, except :separator is not supported."
                    (read-bytes big-in length))
                  (write-data [_ big-out little-out bytes]
                    (if (not= length (alength ^"[B" bytes))
-                     (throw (java.lang.IllegalArgumentException. (str "This sequence should have length " length " but has really length " (alength bytes))))
+                     (throw (java.lang.IllegalArgumentException. (str "This sequence should have length " length " but has really length " (alength ^"[B" bytes))))
                      (.write ^DataOutput big-out ^"[B" bytes)))
                  Object (toString [_] (str "<BinaryIO blob,length=" length ">")))
         prefix (let [prefix-codec (compile-codec prefix)]
@@ -382,7 +382,7 @@ Example:
             padding-bytes-left (max 0 (- length len))
             too-big? (> len length)]
         (if (and (not truncate?) too-big?)
-          (throw (ex-info (str "Data should be max. " length " bytes, but attempting to write " (Math/abs (- len length)) " bytes more!") {:overflow-bytes (Math/abs (- len length))}))
+          (throw (ex-info (str "Data should be max. " length " bytes, but attempting to write " (Math/abs ^long (- len length)) " bytes more!") {:overflow-bytes (Math/abs ^long (- len length))}))
           (do
             (.write ^DataOutputStream big-out arr 0 len)
             (dotimes [_ padding-bytes-left] (.writeByte ^DataOutputStream big-out padding-byte))))))
@@ -512,7 +512,7 @@ Only names and values in `m` will be accepted when encoding or decoding."
   (java.lang.Class/forName "[B")
   (read-data [this big-in _]
     (let [^bytes bytes (read-bytes big-in (count this))]
-      (assert (java.util.Arrays/equals ^bytes bytes this) (format "Expected to read array '%s', found '%s' instead." (str (seq this)) (str (seq bytes))))
+      (assert (java.util.Arrays/equals ^bytes bytes ^bytes this) (format "Expected to read array '%s', found '%s' instead." (str (seq this)) (str (seq bytes))))
       bytes))
   (write-data [this out _ _]
     (.write ^OutputStream out (.getBytes ^String this)))
