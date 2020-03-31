@@ -10,13 +10,11 @@ CAUTION: This implementation is incomplete! Still missing:
 - cells
 - complex values
 - do not assume little-endian data, respect endianess indicator header field"
-  (:use org.clojars.smee.binary.core
-        [clojure.java.io :only [input-stream]])
-  (:import org.clojars.smee.binary.core.BinaryIO
-           java.io.DataOutput
-           java.io.DataInput))
+  (:require [org.clojars.smee.binary.core :refer :all]
+            [clojure.java.io :refer [input-stream]])
+  (:import org.clojars.smee.binary.core.BinaryIO))
 
-(defn- aligned 
+(defn- aligned
   "All tags and data need to be 64bit-aligned."
   [codec]
   (align codec :modulo 8))
@@ -69,7 +67,7 @@ CAUTION: This implementation is incomplete! Still missing:
 
 (def data-element-header (reify BinaryIO
                            (read-data [_ b l]
-                             (let [{hdr :short t :type :as m} (read-data data-element-header-part1 b l)]
+                             (let [{hdr :short t :type} (read-data data-element-header-part1 b l)]
                                (if (= :long-format (:type hdr))
                                  {:type (element-types-rev t)
                                   :length (read-data :int-le b l)}
@@ -139,7 +137,7 @@ CAUTION: This implementation is incomplete! Still missing:
 (defmethod data-element :miUTF32 [{l :length}] 
   (string "UTF32" :length l))
 
-(defmethod data-element :default [{t :type l :length :as hdr}]
+(defmethod data-element :default [{t :type l :length}]
 ;  (println "default handler, unknown subelement with header=" hdr)
   (aligned (repeated t :length (/ l (element-type-sizes t)))))
 

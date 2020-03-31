@@ -1,9 +1,6 @@
 (ns org.clojars.smee.binary.demo.elf
-  (:use org.clojars.smee.binary.core
-        [clojure.java.io :only [input-stream]])
-  (:import org.clojars.smee.binary.core.BinaryIO
-           java.io.DataOutput
-           java.io.DataInput))
+  (:require [org.clojars.smee.binary.core :refer :all]
+            [clojure.java.io :only [input-stream]]))
 
 (def primitives 
   {:elf64 {:addr (align :ulong-le :modulo 8)
@@ -29,7 +26,7 @@
     :length 16))
 
 (defn phdr [endianess] 
-  (let [{:keys [word half addr off xword]} (primitives endianess)] 
+  (let [{:keys [word addr off xword]} (primitives endianess)] 
     (if (= endianess :elf64) 
       (ordered-map
         :p-type (enum word {:null 0

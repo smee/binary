@@ -1,15 +1,12 @@
 (ns org.clojars.smee.binary.codectests
-  (:use clojure.test
-        org.clojars.smee.binary.core)
-  (:require [org.clojars.smee.binary.demo.protobuf :as pb]
+  (:require [clojure.test :refer [deftest are is]]
+            [clojure.walk :as walk]
+            [org.clojars.smee.binary.core :refer :all]
             [org.clojars.smee.binary.demo.bitcoin :as btc])
   (:import impl.NullOutputStream))
 
 (defn s2b [^String s]
   (vec (.getBytes s "UTF-8")))
-
-(defn- byte-array? [value]
-  (= (Class/forName "[B") (class value)))
 
 (defonce array-classes (set (map #(class (% 0)) 
                                  [byte-array int-array long-array short-array float-array double-array boolean-array object-array])))
@@ -37,8 +34,8 @@
 
 (defn- test-roundtrip [codec value expected-bytes]
   (let [{:keys [decoded value encoded]} (do-roundtrip codec value)
-        value (clojure.walk/postwalk replace-arrays value)
-        decoded (clojure.walk/postwalk replace-arrays decoded)]
+        value (walk/postwalk replace-arrays value)
+        decoded (walk/postwalk replace-arrays decoded)]
     (is (= decoded value))
     (when expected-bytes
       (is (= encoded (mapv byte->ubyte expected-bytes))))))

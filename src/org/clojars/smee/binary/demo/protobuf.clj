@@ -1,6 +1,5 @@
 (ns org.clojars.smee.binary.demo.protobuf
-  (:use org.clojars.smee.binary.core
-        [clojure.java.io :only [input-stream]])
+  (:require [org.clojars.smee.binary.core :refer :all])
   (:import org.clojars.smee.binary.core.BinaryIO))
 
 (defn- reconstruct-varint [bytes]
@@ -48,7 +47,7 @@
   (map byte2bits (construct-varint 300))
   (reconstruct-varint (construct-varint 300))
   
-  (decode protobuf (input-stream "dev-resources/google_message1.dat"))
+  ;(decode protobuf (input-stream "dev-resources/google_message1.dat"))
   
   (defn t [codec value] 
      (let [baos (java.io.ByteArrayOutputStream.)

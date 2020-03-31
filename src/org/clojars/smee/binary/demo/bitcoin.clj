@@ -3,8 +3,7 @@
 Specification from https://en.bitcoin.it/wiki/Protocol_specification and
 http://james.lab6.com/2012/01/12/bitcoin-285-bytes-that-changed-the-world"
   (:refer-clojure :exclude [hash])
-  (:use org.clojars.smee.binary.core
-        [clojure.java.io :only [input-stream]])
+  (:require [org.clojars.smee.binary.core :refer :all])
   (:import org.clojars.smee.binary.core.BinaryIO
            java.io.DataOutput
            java.io.DataInput))
@@ -175,26 +174,25 @@ http://james.lab6.com/2012/01/12/bitcoin-285-bytes-that-changed-the-world"
 (def ^:private push-codecs (zipmap push-codec-opcodes (map #(repeated :ubyte :length %) push-codec-opcodes)))
 
 (def script-codec
-  (let [] 
-    (reify BinaryIO
-      (read-data  [_ big-in little-in]
-        (let [overall (read-data var-int-le big-in little-in)] 
-          (loop [n 0, res []]
-            (if 
+  (reify BinaryIO
+    (read-data  [_ big-in little-in]
+      (let [overall (read-data var-int-le big-in little-in)] 
+        (loop [n 0, res []]
+          (if 
               (= n overall) res
               (let [b (byte->ubyte (.readByte ^DataInput big-in))]
                 (if (contains? push-codec-opcodes b) 
                   (recur (+ n b 1) (conj res (read-data (push-codecs b) big-in little-in)))
                   (recur (inc n) (conj res (opcodes-rev b)))))))))
-      (write-data [_ big-out little-out script]
-        (let [len (reduce #(if (keyword? %2) (inc %1) (+ %1 1 (count %2))) 0 script)]
-          (write-data var-int-le big-out little-out len)
-          (doseq [token script]
-            (if (keyword? token)
-              (.writeByte ^DataOutput big-out (opcodes token))
-              (let [len (count token)]
-                (.writeByte ^DataOutput big-out len)
-                (write-data (push-codecs len) big-out little-out token)))))))))
+    (write-data [_ big-out little-out script]
+      (let [len (reduce #(if (keyword? %2) (inc %1) (+ %1 1 (count %2))) 0 script)]
+        (write-data var-int-le big-out little-out len)
+        (doseq [token script]
+          (if (keyword? token)
+            (.writeByte ^DataOutput big-out (opcodes token))
+            (let [len (count token)]
+                 (.writeByte ^DataOutput big-out len)
+                 (write-data (push-codecs len) big-out little-out token))))))))
 
 
 ;;;;;;;;;; blocks ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

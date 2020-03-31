@@ -1,12 +1,9 @@
 (ns org.clojars.smee.binary.core
-  (:use [clojure.java.io :only (input-stream output-stream copy)])
-  (:import [java.io DataInput DataOutput InputStream DataInputStream DataOutputStream ByteArrayInputStream ByteArrayOutputStream OutputStream]
+  (:require [clojure.java.io :refer [copy]])
+  (:import [java.io DataInput DataOutput InputStream DataOutputStream ByteArrayInputStream ByteArrayOutputStream OutputStream]
            [impl BigEndianDataInputStream BigEndianDataOutputStream
-                 LittleEndianDataInputStream LittleEndianDataOutputStream
-                 RandomAccessInputStream
-                 CountingInputStream]
-           [interfaces UnsignedDataInput UnsignedDataOutput])
-  (:require [clojure.walk :as walk]))
+            CountingInputStream LittleEndianDataInputStream LittleEndianDataOutputStream]
+           [interfaces UnsignedDataInput UnsignedDataOutput]))
 
 (defn- wrap-input-stream ^InputStream [in] (-> in (CountingInputStream.)))
 
@@ -162,7 +159,7 @@
   "Performance optimization for `(take-while (complement nil? )(repeatedly n #(read-data codec big-in little-in)))`"
   [codec big-in little-in]
   (loop [res (transient [])]
-    (if-let [value (try (read-data codec big-in little-in) (catch java.io.EOFException e nil))]
+    (if-let [value (try (read-data codec big-in little-in) (catch java.io.EOFException _e nil))]
       (recur (conj! res value))
       (persistent! res))))
 
@@ -479,9 +476,10 @@ Example: Four bytes may represent an integer, two shorts, four bytes, a list of 
         k
         (throw (ex-info (str "Unknown enum key: " k) {:enum m :key k}))))))
 
-(defn enum [codec m & {:keys [lenient?] :or {lenient? false}}]
+(defn enum
   "An enumerated value. `m` must be a 1-to-1 mapping of names (e.g. keywords) to their decoded values.
 Only names and values in `m` will be accepted when encoding or decoding."
+  [codec m & {:keys [lenient?] :or {lenient? false}}]
   (let [pre-encode (strict-map m lenient?)
         post-decode (strict-map (map-invert m) lenient?)]
     (compile-codec codec pre-encode post-decode)))

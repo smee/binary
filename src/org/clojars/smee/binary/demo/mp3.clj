@@ -1,8 +1,6 @@
-(ns ^{:doc "MP3 IDv2 tags, according to the current specification at http://www.id3.org/id3v2.4.0-structure"
-      :author "Steffen Dienst"} 
-  org.clojars.smee.binary.demo.mp3
-  (:use clojure.test
-        org.clojars.smee.binary.core))
+(ns org.clojars.smee.binary.demo.mp3
+  "MP3 IDv2 tags, according to the current specification at http://www.id3.org/id3v2.4.0-structure"
+  (:require [org.clojars.smee.binary.core :refer :all]))
 
 
 (defn int->synchsafe [x]
@@ -55,7 +53,7 @@
   (compile-codec [header]))
 
 (comment 
-  (use '[clojure.java.io :only [input-stream]])
+  (require '[clojure.java.io :refer [input-stream]])
   (let [in (input-stream "d:\\test.mp3")]
     (println (decode mp3-id3v2-codec in))
     (println (decode idv2-frame in)))
