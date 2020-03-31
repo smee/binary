@@ -9,7 +9,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      
+    - uses: DeLaGuardo/clojure-lint-action@v1
+      with:
+        clj-kondo-args: --lint src
+        # secrets.GITHUB_TOKEN is needed here
+        # to publish annotations back to github
+        # this action is not storing or sending it anywhere
+        github_token: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/cache@v1
       with:
         path: ~/.m2/repository
