@@ -99,7 +99,7 @@ Encodes primitive data types, either **b**ig-**e**ndian or **l**ittle-**e**ndian
 :ulong-le
 :ulong-be
 ```
-Please be aware that since Java doesn't support unsigned data types the codecs will consume/produce a bigger data type than for the unsigned case: Unsinged bytes are shorts, unsigned shorts are integers, unsigned integers are longs, unsigned longs are Bigints!
+Please be aware that since Java doesn't support unsigned data types the codecs will consume/produce a bigger data type than for the unsigned case: Unsigned bytes are shorts, unsigned shorts are integers, unsigned integers are longs, unsigned longs are Bigints!
 
 ### Sequences
 If you want several codecs in a specific order, use a vector:
@@ -120,7 +120,7 @@ As you can see arbitrary nesting of codecs is possible. You can define maps of m
 If you use clojure's map literals, the order of the binary values is unspecified (it is determined by the sequence of keys and values within the map's implementation).
 
 ### Repeated
-`repeated` uses another `codec` repeatedly until the stream is exhausted. To restrict, how often the `codec` should be used, you can explicitely give one of trhee parameters:
+`repeated` uses another `codec` repeatedly until the stream is exhausted. To restrict, how often the `codec` should be used, you can explicitely give one of three parameters:
 
 - `:length` gives a fixed length. E.g. `(repeated :int-le :length 5)` will try to read/write exactly five little-endian 32bit integers from/to a stream
 - `:prefix` takes another codec that will get read/written first. This `codec` contains the length for the successive read/write of the repeated values. Example: `(repeated :int-le :prefix :short-le)` will first read a short and tries then to read as many integers as specified in this short value.
