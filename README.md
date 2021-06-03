@@ -99,7 +99,7 @@ Encodes primitive data types, either **b**ig-**e**ndian or **l**ittle-**e**ndian
 :ulong-le
 :ulong-be
 ```
-Please be aware that since Java doesn't support unsigned data types the codecs will consume/produce a bigger data type than for the unsigned case: Unsinged bytes are shorts, unsigned shorts are integers, unsigned integers are longs, unsigned longs are Bigints!
+Please be aware that since Java doesn't support unsigned data types the codecs will consume/produce a bigger data type than for the unsigned case: Unsigned bytes are shorts, unsigned shorts are integers, unsigned integers are longs, unsigned longs are Bigints!
 
 ### Sequences
 If you want several codecs in a specific order, use a vector:
